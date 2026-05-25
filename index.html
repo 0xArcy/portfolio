@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arcy.terminal</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="color-scheme" content="dark">
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div id="terminal">
+        <div id="boot-sequence"></div>
+        <div id="main-content" class="hidden">
+            <pre class="ascii-title" id="arcy-logo">
+  __   ____  ___  _  _ 
+ / _\ (  _ \/ __)( \/ )
+/    \ )   /( (__  )  / 
+\_/\_/(__\_) \___)(__/  
+</pre>
+                <div id="portfolio-text"></div>
+                <!-- Clickable ASCII Character (positioned near the logo) -->
+                <div id="character-container" title="Click me to jump!"></div>
+            <span class="cursor" id="main-cursor"></span>
+        </div>
+    </div>
+
+    <!-- Clickable ASCII Character -->
+    <div id="character-container" title="Click me to jump!"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
