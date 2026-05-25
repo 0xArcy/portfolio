@@ -10,7 +10,7 @@ const bootText = [
 const portfolioLines = [
   "Welcome to the mainframe.",
     "> DESIGNATION: Developer",
-    "> STATUS: Currently in Elden Ring — farming runes & debugging bosses",
+    "> STATUS: Active",
     "> HOBBIES: N/A",
   "> Contact me at: me@arcypwn.dev",
   " ",
@@ -28,13 +28,12 @@ async function typeText(lines, container, speed = 30) {
     container.appendChild(lineDiv);
 
     let text = lines[i];
-    // handle blank lines (HTML collapses plain spaces)
     if (/^\s*$/.test(text)) {
       for (let s = 0; s < text.length; s++) {
         lineDiv.innerHTML += '&nbsp;';
         await new Promise(r => setTimeout(r, speed));
       }
-      await new Promise(r => setTimeout(r, 200)); // Pause between lines
+      await new Promise(r => setTimeout(r, 200)); 
       continue;
     }
 
@@ -47,13 +46,11 @@ async function typeText(lines, container, speed = 30) {
       const before = text.slice(0, start);
       const after = text.slice(start + email.length);
 
-      // type the prefix
       for (let j = 0; j < before.length; j++) {
         lineDiv.innerHTML += before.charAt(j);
         await new Promise(r => setTimeout(r, speed));
       }
 
-      // create anchor for email and type into it
       const a = document.createElement('a');
       a.className = 'email-link';
       a.href = `mailto:${email}`;
@@ -65,7 +62,6 @@ async function typeText(lines, container, speed = 30) {
         await new Promise(r => setTimeout(r, speed));
       }
 
-      // type the suffix
       for (let j = 0; j < after.length; j++) {
         lineDiv.innerHTML += after.charAt(j);
         await new Promise(r => setTimeout(r, speed));
@@ -76,7 +72,7 @@ async function typeText(lines, container, speed = 30) {
         await new Promise(r => setTimeout(r, speed));
       }
     }
-    await new Promise(r => setTimeout(r, 200)); // Pause between lines
+    await new Promise(r => setTimeout(r, 200)); 
   }
 }
 
@@ -89,11 +85,7 @@ async function initTerminal() {
 }
 
 initTerminal();
-
-// --- 2. ASCII Character Animation ---
 const charContainer = document.getElementById('character-container');
-
-// Frames for the shooting animation (template literals for multi-line clarity)
 const frames = [
   `  O  \n /|===--    \n / \\`,
   `  O  \n /|===-- *  \n / \\`,
@@ -104,13 +96,11 @@ const frames = [
 let currentFrame = 0;
 
 if (charContainer) {
-  // Loop the shooting animation
   setInterval(() => {
     charContainer.innerText = frames[currentFrame];
     currentFrame = (currentFrame + 1) % frames.length;
   }, 150);
 
-  // --- 3. Jump on Click ---
   charContainer.addEventListener('click', () => {
     if (!charContainer.classList.contains('jump-anim')) {
       charContainer.classList.add('jump-anim');
