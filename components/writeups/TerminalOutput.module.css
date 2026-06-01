@@ -1,0 +1,84 @@
+.block {
+  margin: 2rem 0;
+  border: 1px solid #1a3d1a;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #050505;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 8px 14px;
+  background: #0e1a0e;
+  border-bottom: 1px solid #1a3d1a;
+  min-height: 38px;
+}
+
+.prompt {
+  color: #7fff7f;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dollar {
+  color: #00ff41;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.rawLink {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: #4a9a4a;
+  border-bottom: 1px dashed #4a9a4a;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rawLink:hover {
+  color: #00ff41;
+  border-color: #00ff41;
+}
+
+.body {
+  padding: 14px 0;
+  overflow-x: auto;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: #9dcc9d;
+  background: #050505;
+}
+
+.body code {
+  display: block;
+}
+
+.line {
+  display: flex;
+  min-height: 1.55em;
+}
+
+.lineNum {
+  display: inline-block;
+  width: 3.2em;
+  padding-right: 1em;
+  text-align: right;
+  color: #2a4a2a;
+  user-select: none;
+  flex-shrink: 0;
+  font-size: 0.8em;
+  line-height: 1.55em;
+  padding-top: 0.02em;
+}
+
+.lineContent {
+  white-space: pre;
+  flex: 1;
+  padding-right: 14px;
+}
