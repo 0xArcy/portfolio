@@ -1,6 +1,21 @@
 import fs from "fs";
 import path from "path";
 
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  const rawDir = path.join(process.cwd(), "public", "raw");
+  const params: { slug: string; file: string }[] = [];
+  for (const slug of fs.readdirSync(rawDir)) {
+    const slugPath = path.join(rawDir, slug);
+    if (!fs.statSync(slugPath).isDirectory()) continue;
+    for (const file of fs.readdirSync(slugPath)) {
+      if (file.endsWith(".txt")) params.push({ slug, file });
+    }
+  }
+  return params;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string; file: string }> }

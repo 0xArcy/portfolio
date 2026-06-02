@@ -1,11 +1,7 @@
 {
   "name": "portfolio",
   "compatibility_date": "2025-06-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "portfolio"
-    }
-  ]
+  "assets": {
+    "directory": "./out"
+  }
 }
