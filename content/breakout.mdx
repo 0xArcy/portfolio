@@ -126,26 +126,20 @@ IPC$         IPC     IPC Service (Samba 4.13.5-Debian)`}
 Only default shares. No anonymous access to anything useful. The decoded string above could be a password — so I need a username. Let's use **enum4linux** to enumerate users.
 
 <TerminalOutput
-  cmd="enum4linux 10.0.0.62"
-  rawHref="/writeups/raw/breakout/enum4linux.txt"
-  output={`[+] Got domain/workgroup name: WORKGROUP
+S-1-5-32-549 BUILTIN\Server Operators (Local Group)
+S-1-5-32-550 BUILTIN\Print Operators (Local Group)
 
- =========================================( Users on 10.0.0.62 )=========================================
+[+] Enumerating users using SID S-1-22-1 and logon username '', password ''                                                                                                           
+                                                                                                                                                                                      
+S-1-22-1-1000 Unix User\cyber (Local User)                                                                                                                                            
 
-[+] Got OS info: Samba 4.13.5-Debian
-
- ===================================( Share Enumeration )===================================
-
-        Sharename       Type      Comment
-        ---------       ----      -------
-        print$          Disk      Printer Drivers
-        IPC$            IPC       IPC Service
-
-[+] NBTStat: BREAKOUT <00> Workstation Service`}
+ =================================( Getting printer info for 10.0.0.62 )=================================
+                                                                                                                                                                                      
+No printers returned.                                                                                                                                                                 
 />
 
 <Note type="tip">
-  enum4linux revealed the machine hostname is **BREAKOUT** and the Samba version is 4.13.5-Debian. Now let's confirm the exact SMB version with Metasploit.
+  enum4linux revealed the machine hostname is **cyber** and the Samba version is 4.13.5-Debian. Now let's confirm the exact SMB version with Metasploit.
 </Note>
 
 <TerminalOutput
@@ -156,7 +150,7 @@ Only default shares. No anonymous access to anything useful. The decoded string 
 [*] 10.0.0.62:445 -   SMB signing is not required`}
 />
 
-I tried logging in via `psexec` and `smb_login` using the username `cyber` and the brainfuck-decoded password. I was able to authenticate successfully, but this didn't give me a shell — SMB isn't the path in.
+I tried logging in via `psexec` and `smb_login` using the username `cyber` and the brainfuck-decoded password and it didn't work.
 
 ---
 
