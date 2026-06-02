@@ -126,16 +126,18 @@ IPC$         IPC     IPC Service (Samba 4.13.5-Debian)`}
 Only default shares. No anonymous access to anything useful. The decoded string above could be a password — so I need a username. Let's use **enum4linux** to enumerate users.
 
 <TerminalOutput
-S-1-5-32-549 BUILTIN\Server Operators (Local Group)
-S-1-5-32-550 BUILTIN\Print Operators (Local Group)
+  cmd="enum4linux 10.0.0.62"
+  rawHref="/writeups/raw/breakout/enum4linux.txt"
+  output={`S-1-5-32-549 BUILTIN\\Server Operators (Local Group)
+S-1-5-32-550 BUILTIN\\Print Operators (Local Group)
 
-[+] Enumerating users using SID S-1-22-1 and logon username '', password ''                                                                                                           
-                                                                                                                                                                                      
-S-1-22-1-1000 Unix User\cyber (Local User)                                                                                                                                            
+[+] Enumerating users using SID S-1-22-1 and logon username '', password ''
+
+S-1-22-1-1000 Unix User\\cyber (Local User)
 
  =================================( Getting printer info for 10.0.0.62 )=================================
-                                                                                                                                                                                      
-No printers returned.                                                                                                                                                                 
+
+No printers returned.`}
 />
 
 <Note type="tip">

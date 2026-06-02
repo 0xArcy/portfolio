@@ -33,6 +33,7 @@
   background-color: #0f0;
   animation: blink 1s step-end infinite;
   vertical-align: bottom;
+  margin-top: 24px;
 }
 
 @keyframes blink {
@@ -81,38 +82,107 @@
   border-bottom-style: solid;
 }
 
-/* Nav link to /writeups */
-.nav {
-  margin-top: 32px;
+/* Writeups section */
+.writeups {
+  margin-top: 40px;
+  border-top: 1px solid rgba(0, 255, 0, 0.15);
+  padding-top: 24px;
+  animation: fadeUp 0.5s ease;
 }
 
-.navLink {
-  color: #4dff4d;
-  text-shadow: 0 0 8px #4dff4d;
-  letter-spacing: 0.04em;
-  transition: color 0.15s;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.navLink:hover {
-  color: #fff;
-  text-shadow: 0 0 8px #fff;
+.writeupsHeader {
+  color: rgba(0, 255, 0, 0.45);
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.writeupsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.writeupEntry {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  text-decoration: none;
+  color: #0f0;
+  padding: 2px 0;
+  transition: opacity 0.15s;
+}
+
+.writeupEntry::before {
+  content: ">";
+  color: rgba(0, 255, 0, 0.35);
+  flex-shrink: 0;
+}
+
+.writeupEntry:hover {
+  opacity: 0.65;
+}
+
+.writeupSlug {
+  min-width: 130px;
+  font-weight: bold;
+}
+
+.writeupMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(0, 255, 0, 0.55);
+  font-size: 0.88rem;
+  text-shadow: none;
+}
+
+.writeupSep {
+  color: rgba(0, 255, 0, 0.2);
+}
+
+.writeupDate {
+  margin-left: auto;
+  color: rgba(0, 255, 0, 0.3);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-shadow: none;
+}
+
+.writeupsAll {
+  color: rgba(0, 255, 0, 0.45);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.15s, text-shadow 0.15s;
+}
+
+.writeupsAll:hover {
+  color: #0f0;
+  text-shadow: 0 0 6px #0f0;
 }
 
 /* Boot sequence */
 .bootSequence { }
 .mainContent { }
-.portfolioText { }
+.portfolioText { margin-top: 4px; }
 
 /* Responsive */
 @media (max-width: 900px) {
   .terminal { padding: 24px; font-size: 1rem; }
   .character { left: auto; right: 28px; top: 80px; font-size: 22px; }
+  .writeupDate { display: none; }
 }
 
 @media (max-width: 420px) {
-  .asciiTitle { font-size: 0.9rem; }
+  .asciiTitle { font-size: 0.9rem; text-shadow: none; }
   .terminal { padding: 16px; text-shadow: none; }
-  .asciiTitle { text-shadow: none; }
   .character { position: static; margin-top: 8px; font-size: 16px; }
   .cursor { width: 8px; }
+  .writeupMeta { display: none; }
 }
