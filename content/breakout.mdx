@@ -6,7 +6,7 @@ os: "Linux"
 date: "2026-05-31"
 tags: ["linux", "usermin", "smb", "brainfuck", "suid", "dirty-pipe", "privilege-escalation"]
 description: "A VulnHub machine with exposed Usermin and Webmin admin panels. Credentials are obfuscated as brainfuck in the page source. Got root two ways: abusing SUID tar to read an old password file, and the Dirty Pipe kernel exploit (CVE-2022-0847)."
-status: "in-progress"
+status: "complete"
 ---
 
 The end goal of this challenge is to get root access and capture the flag.
@@ -170,9 +170,27 @@ I tried logging in via `psexec` and `smb_login` using the username `cyber` and t
 
 Webmin on port 10000 is interesting. Nmap flagged it as potentially vulnerable, and I tried several known Metasploit modules and Python exploit scripts — but the machine author switched it to HTTPS which blocks the known unauthenticated exploits. Dead end for now.
 
+<Screenshot
+  src="/screenshots/breakout/webmin-login-failed.png"
+  alt="Webmin login attempt with the brainfuck-decoded credentials"
+  caption="Webmin rejects the credentials — HTTPS breaks the known unauthenticated exploits too"
+/>
+
 Let's try **port 20000** (Usermin) with the credentials we decoded from brainfuck — username `cyber`, password `.2uqPEfj3D<P'a-3`.
 
+<Screenshot
+  src="/screenshots/breakout/usermin-login-success.png"
+  alt="Usermin login page at port 20000 — successful login as cyber"
+  caption="Usermin accepts the brainfuck-decoded credentials"
+/>
+
 **Et la voilà!**
+
+<Screenshot
+  src="/screenshots/breakout/usermin-command-shell.png"
+  alt="Usermin Command Shell module"
+  caption="Usermin exposes a Command Shell — our entry point for the reverse shell"
+/>
 
 Usermin at `:20000` accepts the login. Usermin is a stripped-down version of Webmin scoped to a single user account — but it still has a **Command Shell** module.
 
@@ -286,6 +304,3 @@ You can use any shell as the target — `/bin/bash` or `/bin/sh` will both work.
   The Dirty Pipe path is noisier than Path 1 — it modifies a SUID binary on disk (temporarily). Path 1 via the backup password is cleaner and is the intended route the machine author designed.
 </Note>
 
----
-
-*Writeup in progress — screenshots for the Usermin login and flag captures coming soon.*
