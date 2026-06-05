@@ -1,0 +1,17 @@
+┌──(kali㉿kali)-[~]
+└─$ gobuster fuzz -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-medium-directories.txt -u http://10.0.0.195/~FUZZ -b 403,404,500
+
+===============================================================
+Gobuster v3.8.2
+===============================================================
+[+] Url:                     http://10.0.0.195/~FUZZ
+[+] Excluded Status codes:   500,403,404
+===============================================================
+Starting gobuster in fuzzing mode
+===============================================================
+[Status=301] [Length=310] [Word=secret] http://10.0.0.195/~secret [--> http://10.0.0.195/~secret/]
+[Status=301] [Length=311] [Word=myfiles] http://10.0.0.195/~myfiles [--> http://10.0.0.195/~myfiles/]
+Progress: 29999 / 29999 (100.00%)
+===============================================================
+Finished
+===============================================================

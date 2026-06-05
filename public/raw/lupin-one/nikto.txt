@@ -1,0 +1,29 @@
+┌──(kali㉿kali)-[~]
+└─$ nikto -h http://10.0.0.195
+- Nikto v2.6.0
+---------------------------------------------------------------------------
++ Target IP:          10.0.0.195
++ Target Hostname:    10.0.0.195
++ Target Port:        80
++ Platform:           Linux/Unix
++ Start Time:         2026-06-03 09:43:35 (GMT-4)
+---------------------------------------------------------------------------
++ Server: Apache/2.4.48 (Debian)
++ ERROR: Failed to check for updates: 403
++ No CGI Directories found (use '-C all' to force check all possible dirs). CGI tests skipped.
++ [999996] /robots.txt: contains 1 entry which should be manually viewed.
++ [600050] Apache/2.4.48 appears to be outdated (current is at least 2.4.66).
++ [999984] /: Server may leak inodes via ETags, header found with file /
++ [013587] /: Suggested security header missing: strict-transport-security.
++ [013587] /: Suggested security header missing: x-content-type-options.
++ [013587] /: Suggested security header missing: permissions-policy.
++ [013587] /: Suggested security header missing: referrer-policy.
++ [013587] /: Suggested security header missing: content-security-policy.
++ [999990] OPTIONS: Allowed HTTP Methods: GET, POST, OPTIONS, HEAD .
++ [002114] /manual/: Web server manual found.
++ [750500] /manual/images/: Directory indexing found.
++ [750500] /image/: Directory indexing found.
++ 8086 requests: 16 errors and 14 items reported on remote host
++ End Time:           2026-06-03 09:49:02 (GMT-4) (327 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested

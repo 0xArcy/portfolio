@@ -1,0 +1,19 @@
+┌──(kali㉿kali)-[~]
+└─$ gobuster dir -u http://10.0.0.195 -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-medium-directories.txt
+===============================================================
+Gobuster v3.8.2
+===============================================================
+[+] Url:                     http://10.0.0.195
+[+] Wordlist:                raft-medium-directories.txt
+[+] Negative Status codes:   404
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+javascript           (Status: 301) [Size: 313] [--> http://10.0.0.195/javascript/]
+image                (Status: 301) [Size: 308] [--> http://10.0.0.195/image/]
+manual               (Status: 301) [Size: 309] [--> http://10.0.0.195/manual/]
+server-status        (Status: 403) [Size: 275]
+Progress: 29999 / 29999 (100.00%)
+===============================================================
+Finished
+===============================================================

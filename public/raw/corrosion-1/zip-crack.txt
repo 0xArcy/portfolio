@@ -1,0 +1,22 @@
+└─$ zip2john user_backup.zip > zipjohn.txt
+ver 2.0 efh 5455 efh 7875 user_backup.zip/id_rsa PKZIP Encr: TS_chk, cmplen=1979, decmplen=2590, crc=A144E09A ts=0298 cs=0298 type=8
+ver 2.0 efh 5455 efh 7875 user_backup.zip/id_rsa.pub PKZIP Encr: TS_chk, cmplen=470, decmplen=563, crc=41C30277 ts=029A cs=029a type=8
+ver 1.0 efh 5455 efh 7875 ** 2b ** user_backup.zip/my_password.txt PKZIP Encr: TS_chk, cmplen=35, decmplen=23, crc=21E9B663 ts=02BA cs=02ba type=0
+ver 2.0 efh 5455 efh 7875 user_backup.zip/easysysinfo.c PKZIP Encr: TS_chk, cmplen=115, decmplen=148, crc=A256BBD9 ts=0170 cs=0170 type=8
+
+└─$ john --wordlist=/usr/share/wordlists/rockyou.txt zipjohn.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (PKZIP [32/64])
+!randybaby       (user_backup.zip)
+1g 0:00:00:01 DONE (2026-06-05 14:19) 0.6451g/s 9249Kp/s
+Session completed.
+
+└─$ unzip user_backup.zip
+[user_backup.zip] id_rsa password: !randybaby
+  inflating: id_rsa
+  inflating: id_rsa.pub
+ extracting: my_password.txt
+  inflating: easysysinfo.c
+
+└─$ cat my_password.txt
+randylovesgoldfish1998

@@ -1,0 +1,28 @@
+└─$ gobuster dir -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-large-directories.txt -u http://10.0.0.103
+===============================================================
+Gobuster v3.8.2
+===============================================================
+[+] Url:         http://10.0.0.103
+[+] Wordlist:    raft-large-directories.txt
+[+] Threads:     10
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+tasks                (Status: 301) [Size: 308] [--> http://10.0.0.103/tasks/]
+server-status        (Status: 403) [Size: 275]
+blog-post            (Status: 301) [Size: 312] [--> http://10.0.0.103/blog-post/]
+Progress: 62281 / 62281 (100.00%)
+===============================================================
+Finished
+===============================================================
+
+└─$ gobuster dir -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-large-directories.txt -u http://10.0.0.103/blog-post/
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+uploads              (Status: 301) [Size: 320] [--> http://10.0.0.103/blog-post/uploads/]
+archives             (Status: 301) [Size: 321] [--> http://10.0.0.103/blog-post/archives/]
+Progress: 62281 / 62281 (100.00%)
+===============================================================
+Finished
+===============================================================
