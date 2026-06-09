@@ -6,7 +6,12 @@
   min-height: 100vh;
 }
 
-/* ASCII Title */
+/* ── Title ───────────────────────────────────────────── */
+.titleWrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .asciiTitle {
   font-weight: bold;
   white-space: pre;
@@ -14,6 +19,10 @@
   margin-bottom: 20px;
   animation: glitch 3s infinite;
   display: inline-block;
+}
+
+.titleHit {
+  animation: titleFire 0.9s ease-out forwards !important;
 }
 
 @keyframes glitch {
@@ -25,7 +34,163 @@
   100% { text-shadow: 0 0 5px #0f0; transform: translate(0); }
 }
 
-/* Blinking cursor */
+@keyframes titleFire {
+  0%   { text-shadow: 0 0 5px #0f0; transform: translate(0); }
+  10%  { text-shadow: 0 0 30px #0f0, 0 0 60px #aaff44, 3px 0 0 #ff0, -3px 0 0 #ff4400; transform: translate(-3px, 2px) skewX(-3deg); }
+  20%  { text-shadow: 0 0 20px #0f0, -4px 0 0 #ff0, 4px 0 0 #ff4400; transform: translate(3px, -2px) skewX(2deg); }
+  35%  { text-shadow: 0 0 40px #00ff41, 0 0 80px #00ff41, 2px 0 0 #ff0; transform: translate(-2px, 1px); }
+  50%  { text-shadow: 0 0 25px #0f0, -2px 0 0 #aaff44; transform: translate(2px, -1px) skewX(-1deg); }
+  65%  { text-shadow: 0 0 15px #0f0; transform: translate(-1px, 0); }
+  80%  { text-shadow: 0 0 8px #0f0; transform: translate(0); }
+  100% { text-shadow: 0 0 5px #0f0; transform: translate(0); }
+}
+
+/* ── Fire sparks ─────────────────────────────────────── */
+.sparksContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.spark {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  height: 6px;
+  border-radius: 999px;
+  background: #00ff41;
+  box-shadow: 0 0 6px #00ff41, 0 0 12px #aaff44;
+  animation: sparkFly 0.75s ease-out forwards;
+}
+
+@keyframes sparkFly {
+  0%   { transform: translateY(0) scaleY(1); opacity: 1; background: #ffff88; box-shadow: 0 0 10px #ffff44; }
+  40%  { opacity: 0.9; background: #aaff44; }
+  100% { transform: translateY(var(--spark-height, -50px)) scaleY(0.3); opacity: 0; }
+}
+
+/* ── Laser beam ──────────────────────────────────────── */
+.laser {
+  position: absolute;
+  top: 78px;
+  left: 0;
+  width: 324px;
+  height: 3px;
+  background: linear-gradient(to right, #ffff88 0%, #00ff41 55%, transparent 100%);
+  box-shadow: 0 0 8px #00ff41, 0 0 20px #00ff41, 0 0 4px #ffff44;
+  transform-origin: right center;
+  animation: laserShot 0.32s ease-out forwards;
+  pointer-events: none;
+  z-index: 40;
+  border-radius: 2px;
+}
+
+@keyframes laserShot {
+  0%   { transform: scaleX(0); opacity: 1; }
+  65%  { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* ── Character button ────────────────────────────────── */
+.character {
+  position: absolute;
+  top: 40px;
+  left: 320px;
+  cursor: pointer;
+  user-select: none;
+  z-index: 50;
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
+}
+
+.character:focus-visible {
+  outline: 1px dashed rgba(0, 255, 65, 0.4);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.charSvg {
+  display: block;
+  transition: filter 0.15s;
+}
+
+.character:hover .charSvg {
+  filter: drop-shadow(0 0 5px #00ff41);
+}
+
+/* ── Idle: right arm wave ────────────────────────────── */
+.rightArm {
+  transform-box: view-box;
+  transform-origin: 52px 34px; /* shoulder */
+}
+
+.rightArmWave {
+  animation: armWave 2s ease-in-out infinite;
+}
+
+@keyframes armWave {
+  0%,  100% { transform: rotate(0deg); }
+  20%        { transform: rotate(-38deg); }
+  40%        { transform: rotate(-10deg); }
+  60%        { transform: rotate(-32deg); }
+  80%        { transform: rotate(-6deg); }
+}
+
+
+/* ── Gun group ───────────────────────────────────────── */
+.gunGroup {
+  /* hidden by default */
+  opacity: 0;
+  transform: scaleX(0);
+  transform-box: view-box;
+  transform-origin: 52px 40px; /* right edge = arm connection */
+}
+
+/* Phase: drawing — gun materialises from arm outward */
+.gunDraw {
+  animation: gunDraw 0.42s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+}
+
+@keyframes gunDraw {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* Phase: shooting — gun held steady */
+.gunVisible {
+  opacity: 1 !important;
+  transform: scaleX(1) !important;
+  animation: none !important;
+}
+
+/* Phase: fading — gun dissolves back */
+.gunFade {
+  animation: gunFade 0.55s ease-in forwards !important;
+}
+
+@keyframes gunFade {
+  from { opacity: 1; transform: scaleX(1); }
+  to   { opacity: 0; transform: scaleX(0); }
+}
+
+/* ── Shoot recoil ────────────────────────────────────── */
+.shootJerk {
+  animation: shootJerk 0.28s ease-out;
+}
+
+@keyframes shootJerk {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(9px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Blinking cursor ─────────────────────────────────── */
 .cursor {
   display: inline-block;
   width: 10px;
@@ -41,33 +206,7 @@
   50%       { opacity: 0; }
 }
 
-/* Character */
-.character {
-  position: absolute;
-  top: 40px;
-  left: 340px;
-  cursor: pointer;
-  white-space: pre;
-  font-size: 28px;
-  font-weight: bold;
-  text-shadow: 0 0 8px #0f0;
-  user-select: none;
-  z-index: 50;
-}
-
-.jumping {
-  animation: jump 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-@keyframes jump {
-  0%   { transform: translateY(0) scaleY(1); }
-  20%  { transform: translateY(10px) scaleY(0.8); }
-  50%  { transform: translateY(-120px) scaleY(1.1); }
-  80%  { transform: translateY(0) scaleY(0.9); }
-  100% { transform: translateY(0) scaleY(1); }
-}
-
-/* Text lines */
+/* ── Text lines ──────────────────────────────────────── */
 .textLine {
   margin: 8px 0;
   white-space: pre-wrap;
@@ -78,11 +217,9 @@
   text-decoration: none;
   border-bottom: 1px dashed rgba(143, 240, 143, 0.35);
 }
-.emailLink:hover {
-  border-bottom-style: solid;
-}
+.emailLink:hover { border-bottom-style: solid; }
 
-/* Writeups section */
+/* ── Writeups ────────────────────────────────────────── */
 .writeups {
   margin-top: 40px;
   border-top: 1px solid rgba(0, 255, 0, 0.15);
@@ -125,9 +262,7 @@
   flex-shrink: 0;
 }
 
-.writeupEntry:hover {
-  opacity: 0.65;
-}
+.writeupEntry:hover { opacity: 0.65; }
 
 .writeupSlug {
   min-width: 130px;
@@ -143,9 +278,7 @@
   text-shadow: none;
 }
 
-.writeupSep {
-  color: rgba(0, 255, 0, 0.2);
-}
+.writeupSep { color: rgba(0, 255, 0, 0.2); }
 
 .writeupDate {
   margin-left: auto;
@@ -167,12 +300,12 @@
   text-shadow: 0 0 6px #0f0;
 }
 
-/* Boot sequence */
+/* ── Boot / layout ───────────────────────────────────── */
 .bootSequence { }
-.mainContent { }
+.mainContent  { }
 .portfolioText { margin-top: 4px; }
 
-/* Copyright footer */
+/* ── Copyright ───────────────────────────────────────── */
 .copyright {
   margin-top: 60px;
   padding-top: 16px;
@@ -184,17 +317,23 @@
   user-select: none;
 }
 
-/* Responsive */
+/* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 900px) {
-  .terminal { padding: 24px; font-size: 1rem; }
-  .character { left: auto; right: 28px; top: 80px; font-size: 22px; }
+  .terminal   { padding: 24px; font-size: 1rem; }
+  .character  { left: auto; right: 28px; top: 80px; }
+  .laser      { display: none; }
   .writeupDate { display: none; }
 }
 
+@media (max-width: 580px) {
+  .character  { position: static; display: block; margin: 10px 0 2px; }
+  .laser      { display: none; }
+}
+
 @media (max-width: 420px) {
-  .asciiTitle { font-size: 0.9rem; text-shadow: none; }
-  .terminal { padding: 16px; text-shadow: none; }
-  .character { position: static; margin-top: 8px; font-size: 16px; }
-  .cursor { width: 8px; }
+  .terminal   { padding: 16px; text-shadow: none; }
+  .asciiTitle { font-size: 0.85rem; text-shadow: none; }
+  .cursor     { width: 8px; }
   .writeupMeta { display: none; }
+  .charSvg    { width: 72px; height: 70px; }
 }
