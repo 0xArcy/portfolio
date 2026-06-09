@@ -124,32 +124,14 @@
   filter: drop-shadow(0 0 5px #00ff41);
 }
 
-/* ── Idle: right arm wave ────────────────────────────── */
-.rightArm {
-  transform-box: view-box;
-  transform-origin: 52px 34px; /* shoulder */
-}
-
-.rightArmWave {
-  animation: armWave 2s ease-in-out infinite;
-}
-
-@keyframes armWave {
-  0%,  100% { transform: rotate(0deg); }
-  20%        { transform: rotate(-38deg); }
-  40%        { transform: rotate(-10deg); }
-  60%        { transform: rotate(-32deg); }
-  80%        { transform: rotate(-6deg); }
-}
 
 
 /* ── Gun group ───────────────────────────────────────── */
 .gunGroup {
-  /* hidden by default */
   opacity: 0;
   transform: scaleX(0);
   transform-box: view-box;
-  transform-origin: 52px 40px; /* right edge = arm connection */
+  transform-origin: 8px 28px; /* right edge of gun = arm connection */
 }
 
 /* Phase: drawing — gun materialises from arm outward */

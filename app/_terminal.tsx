@@ -38,23 +38,38 @@ interface TextLine {
   after: string;
 }
 
+const ARM_CHARS = ["\\", "-", "/"] as const;
+
 function HackerChar({ phase }: { phase: Phase }) {
   const isIdle     = phase === "idle";
   const isGunOut   = phase === "drawing" || phase === "shooting";
   const isShooting = phase === "shooting";
   const isFading   = phase === "fading";
+  const [armFrame, setArmFrame] = useState(0);
+
+  useEffect(() => {
+    if (!isIdle) { setArmFrame(0); return; }
+    const id = setInterval(() => setArmFrame((f) => (f + 1) % 3), 280);
+    return () => clearInterval(id);
+  }, [isIdle]);
+
+  // Body line: /| + waving arm char (dropped when gun is out)
+  const bodyLine = isGunOut || isFading ? "/|" : `/|${ARM_CHARS[armFrame]}`;
+
+  const font = "'Courier New', Courier, monospace";
+  const sz   = 15;
 
   return (
     <svg
-      viewBox="0 0 90 88"
-      width="90"
-      height="88"
+      viewBox="0 0 70 60"
+      width="70"
+      height="60"
       overflow="visible"
       className={`${styles.charSvg} ${isShooting ? styles.shootJerk : ""}`}
     >
       <defs>
         <filter id="sGlow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="1.6" result="b" />
+          <feGaussianBlur stdDeviation="1.4" result="b" />
           <feMerge>
             <feMergeNode in="b" />
             <feMergeNode in="SourceGraphic" />
@@ -69,84 +84,40 @@ function HackerChar({ phase }: { phase: Phase }) {
         </filter>
       </defs>
 
-      {/* Head */}
-      <circle
-        cx="52" cy="14" r="11"
-        fill="none" stroke="#00ff41" strokeWidth="2"
-        filter="url(#sGlow)"
-      />
+      {/* Head — "O" monospace char */}
+      <text x="17" y="15" fontFamily={font} fontSize={sz} fill="#00ff41" filter="url(#sGlow)">O</text>
 
-      {/* Body */}
-      <line
-        x1="52" y1="25" x2="52" y2="57"
-        stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-        filter="url(#sGlow)"
-      />
+      {/* Body + right arm — "/|\" cycling for wave */}
+      <text x="8" y="31" fontFamily={font} fontSize={sz} fill="#00ff41" filter="url(#sGlow)">{bodyLine}</text>
 
-      {/* Left arm — casual idle, hidden during gun phase */}
-      <line
-        x1="52" y1="34" x2="34" y2="50"
-        stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-        filter="url(#sGlow)"
-        style={{ opacity: isGunOut ? 0 : 1, transition: "opacity 0.15s" }}
-      />
+      {/* Legs */}
+      <text x="8" y="49" fontFamily={font} fontSize={sz} fill="#00ff41" filter="url(#sGlow)">{"/ \\"}</text>
 
-      {/* Right arm — waves in idle, still during gun phase */}
-      <g
-        className={`${styles.rightArm} ${isIdle ? styles.rightArmWave : ""}`}
-      >
-        <line
-          x1="52" y1="34" x2="70" y2="50"
-          stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-          filter="url(#sGlow)"
-        />
-      </g>
-
-      {/* Left leg — static */}
-      <line
-        x1="52" y1="57" x2="38" y2="84"
-        stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-        filter="url(#sGlow)"
-      />
-
-      {/* Right leg — static */}
-      <line
-        x1="52" y1="57" x2="66" y2="84"
-        stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-        filter="url(#sGlow)"
-      />
-
-      {/* Gun group — always in DOM, animated in/out */}
+      {/* Gun group — scales in from the arm connection point */}
       <g
         className={`
           ${styles.gunGroup}
-          ${phase === "drawing"  ? styles.gunDraw    : ""}
-          ${phase === "shooting" ? styles.gunVisible  : ""}
-          ${phase === "fading"   ? styles.gunFade     : ""}
+          ${phase === "drawing"  ? styles.gunDraw   : ""}
+          ${phase === "shooting" ? styles.gunVisible : ""}
+          ${phase === "fading"   ? styles.gunFade    : ""}
         `}
       >
-        {/* Gun arm */}
-        <line
-          x1="52" y1="34" x2="16" y2="44"
-          stroke="#00ff41" strokeWidth="2.5" strokeLinecap="round"
-          filter="url(#sGlow)"
-        />
         {/* Gun body */}
-        <rect x="2"  y="37" width="18" height="10" rx="2"   fill="#00ff41" filter="url(#sGlow)" />
+        <rect x="-20" y="23" width="28" height="11" rx="2"   fill="#00ff41" filter="url(#sGlow)" />
         {/* Barrel */}
-        <rect x="-9" y="39" width="13" height="6"  rx="1.5" fill="#00ff41" />
+        <rect x="-32" y="25" width="14" height="7"  rx="1.5" fill="#00ff41" />
         {/* Grip */}
-        <rect x="14" y="45" width="5"  height="7"  rx="1"   fill="#007a20" />
-        {/* Detail groove */}
-        <line x1="5" y1="40" x2="5" y2="45" stroke="#007a20" strokeWidth="1.5" />
+        <rect x="-12" y="32" width="6"  height="8"  rx="1"   fill="#007a20" />
+        {/* Groove */}
+        <line x1="-17" y1="25" x2="-17" y2="32" stroke="#007a20" strokeWidth="1.5" />
 
         {/* Muzzle flash */}
         {isShooting && (
           <g filter="url(#mFlash)">
-            <line x1="-9" y1="42" x2="-24" y2="33" stroke="#ffff88" strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="-9" y1="42" x2="-24" y2="51" stroke="#ffff88" strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="-9" y1="42" x2="-28" y2="42" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
-            <circle cx="-17" cy="42" r="5" fill="#ffffcc" opacity="0.7" />
+            <line x1="-32" y1="28" x2="-46" y2="20" stroke="#ffff88" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="-32" y1="28" x2="-46" y2="36" stroke="#ffff88" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="-32" y1="28" x2="-50" y2="28" stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round" />
+            <circle cx="-40" cy="28" r="5" fill="#ffffcc" opacity="0.7" />
           </g>
         )}
       </g>
