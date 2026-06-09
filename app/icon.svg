@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="3" fill="#080808"/>
+
+  <!-- Skull dome -->
+  <ellipse cx="16" cy="13" rx="9" ry="9" fill="#00ff41"/>
+
+  <!-- Jaw base -->
+  <rect x="9" y="18" width="14" height="7" rx="1" fill="#00ff41"/>
+
+  <!-- Eye sockets -->
+  <ellipse cx="12.5" cy="13" rx="2.8" ry="3" fill="#080808"/>
+  <ellipse cx="19.5" cy="13" rx="2.8" ry="3" fill="#080808"/>
+
+  <!-- Nose cavity -->
+  <path d="M15 17 L16 15.5 L17 17 Z" fill="#080808"/>
+
+  <!-- Jaw teeth gaps -->
+  <rect x="11" y="21" width="2" height="4" rx="0.5" fill="#080808"/>
+  <rect x="15" y="21" width="2" height="4" rx="0.5" fill="#080808"/>
+  <rect x="19" y="21" width="2" height="4" rx="0.5" fill="#080808"/>
+
+  <!-- Glitch scan line -->
+  <rect x="0" y="14" width="32" height="1" fill="#00ff41" opacity="0.08"/>
+
+  <!-- Corner pixel accents -->
+  <rect x="1" y="1" width="2" height="2" fill="#00ff41" opacity="0.5"/>
+  <rect x="29" y="1" width="2" height="2" fill="#00ff41" opacity="0.5"/>
+  <rect x="1" y="29" width="2" height="2" fill="#00ff41" opacity="0.5"/>
+  <rect x="29" y="29" width="2" height="2" fill="#00ff41" opacity="0.5"/>
+
+  <!-- Border glow -->
+  <rect x="0.5" y="0.5" width="31" height="31" rx="3" fill="none" stroke="#00ff41" stroke-width="0.75" opacity="0.4"/>
+</svg>

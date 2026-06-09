@@ -172,6 +172,18 @@
 .mainContent { }
 .portfolioText { margin-top: 4px; }
 
+/* Copyright footer */
+.copyright {
+  margin-top: 60px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 255, 0, 0.1);
+  color: rgba(0, 255, 0, 0.25);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-shadow: none;
+  user-select: none;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .terminal { padding: 24px; font-size: 1rem; }

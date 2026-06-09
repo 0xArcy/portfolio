@@ -202,6 +202,10 @@ export default function TerminalPage({ writeups }: { writeups: WriteupMeta[] }) 
           )}
 
           <span className={styles.cursor} />
+
+          <footer className={styles.copyright}>
+            © {new Date().getFullYear()} arcypwn. all rights reserved.
+          </footer>
         </div>
       )}
     </div>
