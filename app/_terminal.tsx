@@ -117,18 +117,28 @@ export default function TerminalPage({ writeups }: { writeups: WriteupMeta[] }) 
   }
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      setCharFrame((f) => (f + 1) % CHAR_FRAMES.length);
+    }, 150);
+
     async function init() {
+      if (sessionStorage.getItem("booted")) {
+        // Already animated this session — skip straight to end state
+        setBootLines(BOOT_LINES.map((text, i) => ({ id: i, before: text, email: null, after: "" })));
+        setBootDone(true);
+        setPortfolioLines(PORTFOLIO_LINES.map((text, i) => ({ id: BOOT_LINES.length + i, before: text, email: null, after: "" })));
+        setTextDone(true);
+        return;
+      }
       await typeLines(BOOT_LINES, setBootLines, 20);
       setBootDone(true);
       await sleep(100);
       await typeLines(PORTFOLIO_LINES, setPortfolioLines, 40);
       setTextDone(true);
+      sessionStorage.setItem("booted", "1");
     }
     init();
 
-    const interval = setInterval(() => {
-      setCharFrame((f) => (f + 1) % CHAR_FRAMES.length);
-    }, 150);
     return () => clearInterval(interval);
   }, []);
 
