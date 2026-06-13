@@ -22,7 +22,7 @@ Started with an aggressive scan to identify open ports and running services.
 
 <TerminalOutput
   cmd="nmap -A -T5 10.0.0.62"
-  rawHref="/writeups/raw/breakout/nmapsv.txt"
+  rawHref="/writeups/raw/breakout/nmapsv"
   output={`PORT      STATE SERVICE     VERSION
 80/tcp    open  http        Apache httpd 2.4.51 ((Debian))
 |_http-title: Apache2 Debian Default Page: It works
@@ -44,7 +44,7 @@ The server is running multiple services worth enumerating. Let's also run a vuln
 
 <TerminalOutput
   cmd="nmap --script vuln 10.0.0.62"
-  rawHref="/writeups/raw/breakout/nmapvuln.txt"
+  rawHref="/writeups/raw/breakout/nmapvuln"
   output={`80/tcp    open  http
 | http-csrf:
 |   Found possible CSRF vulnerabilities in /manual/ pages
@@ -72,7 +72,7 @@ Let's run dirb to find any hidden directories.
 
 <TerminalOutput
   cmd="dirb http://10.0.0.62/"
-  rawHref="/writeups/raw/breakout/dirbrepo.txt"
+  rawHref="/writeups/raw/breakout/dirbrepo"
   output={`+ http://10.0.0.62/index.html  (CODE:200|SIZE:11159)
 ==> DIRECTORY: http://10.0.0.62/manual/
 + http://10.0.0.62/server-status  (CODE:403|SIZE:274)`}
@@ -80,7 +80,7 @@ Let's run dirb to find any hidden directories.
 
 <TerminalOutput
   cmd="nikto -h http://10.0.0.62"
-  rawHref="/writeups/raw/breakout/nikto.txt"
+  rawHref="/writeups/raw/breakout/nikto"
   output={`+ Server: Apache/2.4.51 (Debian)
 + Apache/2.4.51 appears to be outdated (current is at least 2.4.66).
 + /: Server may leak inodes via ETags (CVE-2003-1418)
@@ -94,7 +94,7 @@ Looking at the page source, there's a comment buried at the bottom:
 
 <TerminalOutput
   cmd="view-source:http://10.0.0.62/index.html"
-  rawHref="/writeups/raw/breakout/indexpagebf.txt"
+  rawHref="/writeups/raw/breakout/indexpagebf"
   output={`++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>++++++++++++++++.++++.>>+++++++++++++++++.----.<++++++++++.-----------.>-----------.++++.<<+.>-.--------.++++++++++++++++++++.<------------.>>---------.<<++++++.++++++.`}
 />
 
@@ -116,7 +116,7 @@ I always start by listing any shares I can access anonymously.
 
 <TerminalOutput
   cmd="smbclient -L //10.0.0.62/"
-  rawHref="/writeups/raw/breakout/smbclientlisting.txt"
+  rawHref="/writeups/raw/breakout/smbclientlisting"
   output={`Sharename    Type    Comment
 ---------    ----    -------
 print$       Disk    Printer Drivers
@@ -127,7 +127,7 @@ Only default shares. No anonymous access to anything useful. The decoded string 
 
 <TerminalOutput
   cmd="enum4linux 10.0.0.62"
-  rawHref="/writeups/raw/breakout/enum4linux.txt"
+  rawHref="/writeups/raw/breakout/enum4linux"
   output={`S-1-5-32-549 BUILTIN\\Server Operators (Local Group)
 S-1-5-32-550 BUILTIN\\Print Operators (Local Group)
 
@@ -146,7 +146,7 @@ No printers returned.`}
 
 <TerminalOutput
   cmd="msf > use auxiliary/scanner/smb/smb_version → run"
-  rawHref="/writeups/raw/breakout/smbversionmsf.txt"
+  rawHref="/writeups/raw/breakout/smbversionmsf"
   output={`[*] 10.0.0.62:445 - SMB Detected (versions: 2, 3) (preferred dialect: SMB 3.1.1)
 [+] 10.0.0.62:445 -   Host is running Version 6.1.0 (unknown OS)
 [*] 10.0.0.62:445 -   SMB signing is not required`}
@@ -160,7 +160,7 @@ I tried logging in via `psexec` and `smb_login` using the username `cyber` and t
 
 <TerminalOutput
   cmd="nikto -h http://10.0.0.62:10000"
-  rawHref="/writeups/raw/breakout/niktowebmin10k.txt"
+  rawHref="/writeups/raw/breakout/niktowebmin10k"
   output={`+ Server: MiniServ/1.981
 + [800125] /: Webmin Unix administrator interface — should not be running unless required.
 + [002739] /.htpasswd: Contains authorization information.

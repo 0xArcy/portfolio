@@ -15,7 +15,7 @@ status: "complete"
 
 <TerminalOutput
   cmd="nmap -A -T5 10.0.0.195"
-  rawHref="/writeups/raw/lupin-one/nmap.txt"
+  rawHref="/writeups/raw/lupin-one/nmap"
   output={`PORT   STATE SERVICE VERSION
 22/tcp open  ssh     OpenSSH 8.4p1 Debian 5
 80/tcp open  http    Apache httpd 2.4.48
@@ -49,7 +49,7 @@ Standard gobuster against the root finds nothing useful — `javascript/`, `imag
 
 <TerminalOutput
   cmd="gobuster fuzz -w raft-medium-directories.txt -u http://10.0.0.195/~FUZZ -b 403,404,500"
-  rawHref="/writeups/raw/lupin-one/gobuster-fuzz.txt"
+  rawHref="/writeups/raw/lupin-one/gobuster-fuzz"
   output={`[Status=301] [Word=secret] http://10.0.0.195/~secret
 [Status=301] [Word=myfiles] http://10.0.0.195/~myfiles`}
 />
@@ -70,7 +70,7 @@ Username: `icex64`. The key is hidden as a dotfile somewhere under `/~secret/`. 
 
 <TerminalOutput
   cmd="ffuf -w directory-list-2.3-medium.txt -u http://10.0.0.195/~secret/.FUZZ -fc 403 -e .txt,.html"
-  rawHref="/writeups/raw/lupin-one/ffuf-secret.txt"
+  rawHref="/writeups/raw/lupin-one/ffuf-secret"
   output={`mysecret.txt  [Status: 200, Size: 4689, Words: 1, Lines: 2]`}
 />
 
@@ -95,7 +95,7 @@ The `/~secret/` page hints not to use fasttrack — so I used it:
 
 <TerminalOutput
   cmd="ssh2john secret.key > hashjohn.txt && john --wordlist=fasttrack.txt hashjohn.txt"
-  rawHref="/writeups/raw/lupin-one/john.txt"
+  rawHref="/writeups/raw/lupin-one/john"
   output={`P@55w0rd!  (secret.key)`}
 />
 
