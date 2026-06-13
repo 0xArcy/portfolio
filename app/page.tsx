@@ -2,6 +2,6 @@ import { getAllWriteups } from "@/lib/writeups";
 import TerminalPage from "./_terminal";
 
 export default function Page() {
-  const writeups = getAllWriteups();
+  const writeups = getAllWriteups().slice(0, 3);
   return <TerminalPage writeups={writeups} />;
 }
