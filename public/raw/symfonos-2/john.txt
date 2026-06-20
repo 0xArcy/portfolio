@@ -1,0 +1,30 @@
+┌──(kali㉿kali)-[~/Desktop/symfonos2/evidence/credentials]
+└─$ vim users.txt                       
+                                                                                                                                             
+┌──(kali㉿kali)-[~/Desktop/symfonos2/evidence/credentials]
+└─$ cat users.txt 
+root:$6$VTftENaZ$ggY84BSFETwhissv0N6mt2VaQN9k6/HzwwmTtVkDtTbCbqofFO8MVW.IcOKIzuI07m36uy9.565qelr/beHer.:18095:0:99999:7:::
+aeolus:$6$dgjUjE.Y$G.dJZCM8.zKmJc9t4iiK9d723/bQ5kE1ux7ucBoAgOsTbaKmp.0iCljaobCntN3nCxsk4DLMy0qTn8ODPlmLG.:18095:0:99999:7:::
+cronus:$6$wOmUfiZO$WajhRWpZyuHbjAbtPDQnR3oVQeEKtZtYYElWomv9xZLOhz7ALkHUT2Wp6cFFg1uLCq49SYel5goXroJ0SxU3D/:18095:0:99999:7:::
+
+                                                                                                                                             
+┌──(kali㉿kali)-[~/Desktop/symfonos2/evidence/credentials]
+└─$ john --wordlist=/usr/share/wordlists/fasttrack.txt users.txt 
+Created directory: /home/kali/.john
+Using default input encoding: UTF-8
+Loaded 3 password hashes with 3 different salts (sha512crypt, crypt(3) $6$ [SHA512 256/256 AVX2 4x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+0g 0:00:00:00 DONE (2026-06-19 20:10) 0g/s 1746p/s 5240c/s 5240C/s Spring2017..starwars
+Session completed. 
+
+┌──(kali㉿kali)-[~/Desktop/symfonos2/evidence/credentials]
+└─$ john --wordlist=/usr/share/wordlists/rockyou.txt users.txt 
+Using default input encoding: UTF-8
+Loaded 3 password hashes with 3 different salts (sha512crypt, crypt(3) $6$ [SHA512 256/256 AVX2 4x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+0g 0:00:00:05 0.08% (ETA: 21:59:00) 0g/s 2529p/s 7791c/s 7791C/s john cena..121091
+sergioteamo      (aeolus) 
