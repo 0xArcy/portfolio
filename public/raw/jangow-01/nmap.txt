@@ -1,0 +1,29 @@
+┌──(kali㉿kali)-[~]
+└─$ nmap -A -T5 10.0.0.221  
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-24 20:14 -0400
+Nmap scan report for 10.0.0.221
+Host is up (0.00032s latency).
+Not shown: 998 filtered tcp ports (no-response)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+80/tcp open  http    Apache httpd 2.4.18
+|_http-title: Index of /
+| http-ls: Volume /
+| SIZE  TIME              FILENAME
+| -     2021-06-10 18:05  site/
+|_
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+MAC Address: 08:00:27:4F:9C:B3 (Oracle VirtualBox virtual NIC)
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Aggressive OS guesses: Linux 3.10 - 4.11 (97%), Linux 3.13 - 4.4 (97%), Linux 3.16 - 4.6 (97%), Linux 3.2 - 4.14 (97%), Linux 3.8 - 3.16 (97%), Linux 4.4 (97%), Linux 3.13 (94%), Linux 4.2 (94%), OpenWrt Chaos Calmer 15.05 (Linux 3.18) or Designated Driver (Linux 4.1 or 4.4) (91%), Linux 4.10 (91%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 1 hop
+Service Info: Host: 127.0.0.1; OS: Unix
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.32 ms 10.0.0.221
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 19.80 seconds
+
